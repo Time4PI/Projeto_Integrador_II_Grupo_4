@@ -1,6 +1,7 @@
 import express from "express";
 import {Request, Response, Router} from "express";
 import { AccountsHandler } from "./accounts/accounts";
+import { EventsHandler } from "./events/events";
 
 const app = express();
 const route = Router();
@@ -18,59 +19,23 @@ route.put('/signUp', AccountsHandler.signUpHandler);
 
 route.get('/login', AccountsHandler.loginHandler);
 
-route.put('/addNewEvent', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/addNewEvent', EventsHandler.addNewEventHandler);
 
-route.get('/getEvents', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.get('/getEvents', );
 
-route.delete('/deleteEvent', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.delete('/deleteEvent', );
 
-route.put('/evaluateNewEvent', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/evaluateNewEvent', );
 
-route.put('/eaddFunds', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/addFunds', );
 
-route.put('/withdrawFunds', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/withdrawFunds', );
 
-route.put('/betOnEvent', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/betOnEvent', );
 
-route.put('/finishEvent', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/finishEvent', );
 
-route.put('/searchEvent', 
-    (req: Request, res: Response)=>{
-        
-    }
-);
+route.put('/searchEvent', );
 
 app.use(route);
 app.listen(port, () => {
