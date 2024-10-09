@@ -1,4 +1,5 @@
 import { Request, Response, RequestHandler, response } from "express";
+import OracleDB from "oracledb";
 import { AccountsHandler } from "../accounts/accounts"; 
 
 export namespace EventsHandler{
