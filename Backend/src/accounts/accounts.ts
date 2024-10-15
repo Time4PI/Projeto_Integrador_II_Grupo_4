@@ -31,17 +31,17 @@ export namespace AccountsHandler {
 
         await connection.close(); 
 
-        if (addedAccount){
-            return undefined;
+        if (addedAccount.rows){
+            const logedAccount: UserAccount = {
+                id: addedAccount.rows[0].id,
+                completeName: addedAccount.rows[0].completeName,
+                email: addedAccount.rows[0].email,
+                password: undefined
+            };
+            return logedAccount;
         }
-        const logedAccount: UserAccount = {
-            id: addedAccount.rows[0].id,
-            completeName: addedAccount.rows[0].id,
-            email: addedAccount.rows[0].id,
-            password: undefined
-        };
         
-        return logedAccount;
+        return undefined;
     }
 
     export async function validateEmail(email: string) : Promise<boolean>{
