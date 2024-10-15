@@ -4,46 +4,92 @@ import OracleDB from "oracledb";
 export namespace AccountsHandler {
     
     export type UserAccount = {
-        name:string;
-        email:string;
-        password:string;
-        birthdate:string; 
+        id: number | undefined;
+        completeName: string;
+        email: string;
+        password: string | undefined;
     };
 
-    let accountsDatabase: UserAccount[] = [];
+    export async function saveNewAccount(ua: UserAccount) : Promise <UserAccount | undefined>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+        
+        const connection = await OracleDB.getConnection({
+            user: "COLOCAR DPS",
+            password: "COLOCAR DPS",
+            connectionString: "COLOCAR DPS"
+        });
 
-    export function saveNewAccount(ua: UserAccount) : number{
-        accountsDatabase.push(ua);
-        return accountsDatabase.length;
+        await connection.execute(
+            'INSERT INTO ACCOUNTS VALUES(:completeName, :email, :password)',
+            [ua.completeName, ua.email, ua.password]
+        );
+
+        const addedAccount = await connection.execute(
+            'SELECT id, completeName, email FROM ACCOUNTS WHERE email = :email',
+            [ua.email]
+        );
+
+        await connection.close(); 
+
+        if (addedAccount){
+            return undefined;
+        }
+        const logedAccount: UserAccount = {
+            id: addedAccount.rows[0].id,
+            completeName: addedAccount.rows[0].id,
+            email: addedAccount.rows[0].id,
+            password: undefined
+        };
+        
+        return logedAccount;
     }
 
-    export function validateEmail(email: string) : boolean{
-        const validEmail = accountsDatabase.find((obj) => obj.email === email);
-        if (!validEmail){
+    export async function validateEmail(email: string) : Promise<boolean>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+        
+        const connection = await OracleDB.getConnection({
+            user: "COLOCAR DPS",
+            password: "COLOCAR DPS",
+            connectionString: "COLOCAR DPS"
+        });
+
+        const results = await connection.execute(
+            'SELECT id, completeName, email FROM ACCOUNTS WHERE email = :email',
+            [email]
+        );
+
+        await connection.close(); 
+        if (!results.rows){
             return true;
         }
         return false;
     }
     
-    export const signUpHandler: RequestHandler = (req: Request, res: Response) => {
+    export const signUpHandler: RequestHandler = async(req: Request, res: Response) => {
         
         const pName = req.get('name');
         const pEmail = req.get('email');
         const pPassword = req.get('password');
-        const pBirthdate = req.get('birthdate');
         
-        if(pName && pEmail && pPassword && pBirthdate){
+        if(pName && pEmail && pPassword){
             
-            if (validateEmail(pEmail)){
+            if (await validateEmail(pEmail)){
                 const newAccount: UserAccount = {
-                    name: pName,
+                    id: undefined,
+                    completeName: pName,
                     email: pEmail, 
                     password: pPassword,
-                    birthdate: pBirthdate
                 }
-                const ID = saveNewAccount(newAccount);
-                res.statusCode = 200; 
-                res.send(`Nova conta adicionada. Código: ${ID}`);
+                const addedAcount = await saveNewAccount(newAccount);
+                
+                if (!addedAcount){
+                    res.statusCode = 400;
+                    res.send(`Sign Up falhou`); 
+
+                }else{
+                    res.statusCode = 200; 
+                    res.send(`Nova conta adicionada. Código: ${addedAcount.id}`);
+                }
             } else{
                 res.statusCode = 400;
                 res.send("Email Invalido.");
@@ -54,32 +100,50 @@ export namespace AccountsHandler {
         }
     }
 
-    function authenticate(email: string, password: string) : boolean{
-        const account = accountsDatabase.find((obj) => obj.email === email);
-        if (account === undefined){
-            return false;
-        }
-        if (account.password === password){
-            return true;
-        }
-        return false;
-    }
+    async function login(email: string, password: string): Promise<UserAccount | undefined> {
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+        
+        const connection = await OracleDB.getConnection({
+            user: "COLOCAR DPS",
+            password: "COLOCAR DPS",
+            connectionString: "COLOCAR DPS"
+        });
 
-    export const loginHandler: RequestHandler = (req: Request, res: Response) => {
-        const pemail = req.get('email');
-        const ppassword = req.get('password');
+        const results = await connection.execute(
+            'SELECT id, completeName, email FROM ACCOUNTS WHERE email = :email AND password = :password',
+            [email, password]
+        );
 
-        if (pemail && ppassword){
-            if (authenticate(pemail, ppassword)){
-                res.statusCode = 400;
-                res.send("Acesso garantido!");
-            }
-            res.statusCode = 400;
-            res.send("Credenciais Invalidas.");
+        await connection.close(); 
+
+        if (!results.rows) {
+            return undefined;
         } else {
-            res.statusCode = 400;
-            res.send("Parâmetros inválidos ou faltantes.");
+            const logedAccount = results.rows[0]; 
+            const userAccount: UserAccount = {
+                id: logedAccount.id,
+                completeName: logedAccount.completeName,
+                email: logedAccount.email,
+                password: undefined 
+            };
+            return userAccount;
         }
-
     }
+
+    export const loginHandler: RequestHandler = async (req: Request, res: Response) => {
+            const pEmail = req.get('email');
+            const pPassword = req.get('password');
+
+            if (pEmail && pPassword) {
+                const user = await login(pEmail, pPassword);
+
+                if (user) {
+                    res.status(200).send('Login realizado com sucesso');
+                } else {
+                    res.status(401).send('Email ou senha inválidos');
+                }
+            } else {
+                res.status(400).send('Requisição inválida - Parâmetros faltando');
+            }
+        };
 }

@@ -24,6 +24,10 @@ export namespace EventsHandler{
         return eventsDatabase.length;
     }
 
+    function deleteEvent(email: string, title: string){
+
+    }
+
     export const addNewEventHandler: RequestHandler = (req: Request, res: Response) => {
         const eCreatorEmail = req.get('creatorEmail');
         const eTitle = req.get('title');
@@ -54,14 +58,26 @@ export namespace EventsHandler{
                 res.send(`Novo evento adicionado. Código: ${ID}`);
             }else {
                 res.statusCode = 400;
-                res.send("Dados inválidos na requisição.")
+                res.send("Dados inválidos na requisição.");
             }
 
         } else {
             res.statusCode = 400;
-            res.send("Parâmetros inválidos ou faltantes.")
+            res.send("Parâmetros inválidos ou faltantes.");
         }
 
+    }
+
+    export const deleteEventHandler: RequestHandler = (req: Request, res: Response) =>{
+        const eCreatorEmail = req.get('creatorEmail');
+        const eTitle = req.get('title');
+
+        if (eCreatorEmail && eTitle){
+
+        } else {
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes."); 
+        }
     }
 
 }
