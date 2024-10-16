@@ -63,5 +63,6 @@ export namespace EventsHandler{
         }
 
     }
+    export const getEventsHandler: RequestHandler = (req: Request, res: Response) => {
 
 }
