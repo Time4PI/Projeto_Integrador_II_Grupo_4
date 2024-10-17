@@ -12,36 +12,40 @@ export namespace AccountsHandler {
         password: string | undefined;
     };
 
-    interface AccountRow {
-        token: string;
-    }
+    export type AccountRow = {
+        TOKEN: string;
+    };
 
-    export async function saveNewAccount(ua: UserAccount) : Promise <string | undefined>{
+    export async function saveNewAccount(ua: UserAccount): Promise<string | undefined> {
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-
+    
         let connection = await OracleDB.getConnection({
             user: process.env.ORACLE_USER,
             password: process.env.ORACLE_PASSWORD,
             connectString: process.env.ORACLE_CONN_STR
         });
-
+    
         await connection.execute(
-            'INSERT INTO ACCOUNTS VALUES(:completeName, :email, :password)',
-            [ua.completeName, ua.email, ua.password]
+            'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, dbms_random.string(\'x\',32))',
+            [ua.email, ua.password, ua.completeName]
         );
-
+    
+        await connection.commit();  // Certifique-se de confirmar a transação
+        
         const addedAccount = await connection.execute<AccountRow>(
-            'SELECT token FROM ACCOUNTS WHERE email = :email',
+            'SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email',
             [ua.email]
         );
-
-        await connection.close(); 
-
-        if (addedAccount.rows){
-            return addedAccount.rows[0].token;
-        }  
-        
-        
+    
+        console.dir(addedAccount.rows);  // Log para depuração
+    
+        await connection.close();
+    
+        if (addedAccount.rows && addedAccount.rows.length > 0) {
+            const accountToken: string = addedAccount.rows[0].TOKEN;
+            return accountToken; // arrumar retorno
+        }
+    
         return undefined;
     }
 
@@ -55,13 +59,13 @@ export namespace AccountsHandler {
         });
 
         const results = await connection.execute(
-            'SELECT email FROM ACCOUNTS WHERE email = :email',
+            'SELECT EMAIL FROM ACCOUNTS WHERE EMAIL = :email',
             [email]
         );
 
         await connection.close(); 
         
-        if (!results.rows){
+        if (!results.rows || results.rows.length === 0){
             return true;
         }
         return false;
@@ -83,7 +87,7 @@ export namespace AccountsHandler {
                     password: pPassword,
                 }
                 const newAccountToken = await saveNewAccount(newAccount);
-                
+                console.dir(newAccountToken)
                 if (!newAccountToken){
                     res.statusCode = 400;
                     res.send(`Sign Up falhou`); 
@@ -112,18 +116,19 @@ export namespace AccountsHandler {
         });
 
         const results = await connection.execute<AccountRow>(
-            'SELECT token FROM ACCOUNTS WHERE email = :email AND password = :password',
+            "SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email AND PASSWORD = :password",
             [email, password]
         );
 
         await connection.close(); 
-
-        if (!results.rows) {
-            return undefined;
+        console.dir(results.rows);
+        if (results.rows && results.rows.length > 0) {
+            const logedAccountToken = results.rows[0].TOKEN; 
+            
+            return logedAccountToken;
         }
-        const logedAccountToken: string = results.rows[0].token; 
         
-        return logedAccountToken;
+        return undefined;
     }
     
 
@@ -132,13 +137,13 @@ export namespace AccountsHandler {
         const pPassword = req.get('password');
 
         if (pEmail && pPassword) {
-            const userToken = await login(pEmail, pPassword);
+            const userToken: string | undefined = await login(pEmail, pPassword);
 
             if (userToken) {
                 res.status(200);
                 res.send(`Login realizado com sucesso. Token : ${userToken}`);
             } else {
-                res.status(401).send('Email ou senha inválidos');
+                res.status(401).send(`Email ou senha inválidos`);
             }
         } else {
             res.status(400).send('Requisição inválida - Parâmetros faltando');
