@@ -12,7 +12,11 @@ export namespace AccountsHandler {
         password: string | undefined;
     };
 
-    export async function saveNewAccount(ua: UserAccount) : Promise <UserAccount | undefined>{
+    interface AccountRow {
+        token: string;
+    }
+
+    export async function saveNewAccount(ua: UserAccount) : Promise <string | undefined>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
         let connection = await OracleDB.getConnection({
@@ -26,22 +30,17 @@ export namespace AccountsHandler {
             [ua.completeName, ua.email, ua.password]
         );
 
-        const addedAccount = await connection.execute(
-            'SELECT id, completeName, email FROM ACCOUNTS WHERE email = :email',
+        const addedAccount = await connection.execute<AccountRow>(
+            'SELECT token FROM ACCOUNTS WHERE email = :email',
             [ua.email]
         );
 
         await connection.close(); 
 
         if (addedAccount.rows){
-            const logedAccount: UserAccount = {
-                id: addedAccount.rows[0].id,
-                completeName: addedAccount.rows[0].completeName,
-                email: addedAccount.rows[0].email,
-                password: undefined
-            };
-            return logedAccount;
-        }
+            return addedAccount.rows[0].token;
+        }  
+        
         
         return undefined;
     }
@@ -56,11 +55,12 @@ export namespace AccountsHandler {
         });
 
         const results = await connection.execute(
-            'SELECT id, completeName, email FROM ACCOUNTS WHERE email = :email',
+            'SELECT email FROM ACCOUNTS WHERE email = :email',
             [email]
         );
 
         await connection.close(); 
+        
         if (!results.rows){
             return true;
         }
@@ -82,15 +82,15 @@ export namespace AccountsHandler {
                     email: pEmail, 
                     password: pPassword,
                 }
-                const addedAcount = await saveNewAccount(newAccount);
+                const newAccountToken = await saveNewAccount(newAccount);
                 
-                if (!addedAcount){
+                if (!newAccountToken){
                     res.statusCode = 400;
                     res.send(`Sign Up falhou`); 
 
                 }else{
                     res.statusCode = 200; 
-                    res.send(`Nova conta adicionada. Código: ${addedAcount.id}`);
+                    res.send(`Nova conta adicionada. Token: ${newAccountToken}`);
                 }
             } else{
                 res.statusCode = 400;
@@ -102,7 +102,7 @@ export namespace AccountsHandler {
         }
     }
 
-    async function login(email: string, password: string): Promise<UserAccount | undefined> {
+    async function login(email: string, password: string): Promise<string | undefined> {
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
         let connection = await OracleDB.getConnection({
@@ -111,8 +111,8 @@ export namespace AccountsHandler {
             connectString: process.env.ORACLE_CONN_STR
         });
 
-        const results = await connection.execute(
-            'SELECT id, completeName, email FROM ACCOUNTS WHERE email = :email AND password = :password',
+        const results = await connection.execute<AccountRow>(
+            'SELECT token FROM ACCOUNTS WHERE email = :email AND password = :password',
             [email, password]
         );
 
@@ -120,32 +120,28 @@ export namespace AccountsHandler {
 
         if (!results.rows) {
             return undefined;
-        } else {
-            const logedAccount = results.rows[0]; 
-            const userAccount: UserAccount = {
-                id: logedAccount.id,
-                completeName: logedAccount.completeName,
-                email: logedAccount.email,
-                password: undefined 
-            };
-            return userAccount;
         }
+        const logedAccountToken: string = results.rows[0].token; 
+        
+        return logedAccountToken;
     }
+    
 
     export const loginHandler: RequestHandler = async (req: Request, res: Response) => {
-            const pEmail = req.get('email');
-            const pPassword = req.get('password');
+        const pEmail = req.get('email');
+        const pPassword = req.get('password');
 
-            if (pEmail && pPassword) {
-                const user = await login(pEmail, pPassword);
+        if (pEmail && pPassword) {
+            const userToken = await login(pEmail, pPassword);
 
-                if (user) {
-                    res.status(200).send('Login realizado com sucesso');
-                } else {
-                    res.status(401).send('Email ou senha inválidos');
-                }
+            if (userToken) {
+                res.status(200);
+                res.send(`Login realizado com sucesso. Token : ${userToken}`);
             } else {
-                res.status(400).send('Requisição inválida - Parâmetros faltando');
+                res.status(401).send('Email ou senha inválidos');
             }
-        };
+        } else {
+            res.status(400).send('Requisição inválida - Parâmetros faltando');
+        }
+    };
 }
