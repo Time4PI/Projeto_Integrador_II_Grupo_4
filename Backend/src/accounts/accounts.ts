@@ -1,5 +1,7 @@
 import {Request, RequestHandler, Response} from "express";
 import OracleDB from "oracledb";
+import dotenv from 'dotenv'; 
+dotenv.config();
 
 export namespace AccountsHandler {
     
@@ -12,11 +14,11 @@ export namespace AccountsHandler {
 
     export async function saveNewAccount(ua: UserAccount) : Promise <UserAccount | undefined>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-        
-        const connection = await OracleDB.getConnection({
-            user: "COLOCAR DPS",
-            password: "COLOCAR DPS",
-            connectionString: "COLOCAR DPS"
+
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
         });
 
         await connection.execute(
@@ -46,11 +48,11 @@ export namespace AccountsHandler {
 
     export async function validateEmail(email: string) : Promise<boolean>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-        
-        const connection = await OracleDB.getConnection({
-            user: "COLOCAR DPS",
-            password: "COLOCAR DPS",
-            connectionString: "COLOCAR DPS"
+
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
         });
 
         const results = await connection.execute(
@@ -102,11 +104,11 @@ export namespace AccountsHandler {
 
     async function login(email: string, password: string): Promise<UserAccount | undefined> {
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-        
-        const connection = await OracleDB.getConnection({
-            user: "COLOCAR DPS",
-            password: "COLOCAR DPS",
-            connectionString: "COLOCAR DPS"
+
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
         });
 
         const results = await connection.execute(
