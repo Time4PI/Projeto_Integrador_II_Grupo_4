@@ -122,5 +122,27 @@ export namespace EventsHandler{
             res.send("Parâmetros inválidos ou faltantes."); 
         }
     }
+    export const getEventsHandler: RequestHandler = (req: Request,  res: Response) =>{
+        const eCreatorEmail = req.query.creatorEmail as string;
+        const eCategory = req.query.category as string;
+        const eStatus = req.query.status as string;
 
+        let fillteredEvents = eventsDatabase;
+
+        if (eCreatorEmail) {
+            fillteredEvents = fillteredEvents.filter(event => event.creatorEmail === eCreatorEmail);
+        }
+        if (eCategory) {
+            fillteredEvents = fillteredEvents.filter(event => event.category === eCategory);
+        }
+        if (eStatus) {
+            fillteredEvents = fillteredEvents.filter(event => event.status === eStatus);
+        }
+    
+        if (fillteredEvents.length > 0) {
+            res.status(200).json(fillteredEvents);
+        } else {
+            res.status(404).send("Não foi encontrado nenhum evento");
+        }
+    }
 }
