@@ -10,7 +10,7 @@ export namespace EventsHandler{
         creatorID: number;
         title: string;   //até 50 caracteres
         description: string;  //até 150 caracteres
-        category: string;
+        category: number;
         status: string;  //Valor padrão de esperando moderação (Pending, Reproved, Aproved, Closed, Deleted)
         rightResponse: string | undefined;  //undefined por padrão, muda quando admin da a resposta
         startDate: Date;   //estudar o tipo date
@@ -19,17 +19,17 @@ export namespace EventsHandler{
 
     export type EventRow = {
         EVENT_ID: number;
-        CREATOR_ID: number;
+        CREATOR_ID?: number;
         TITLE?: string;  
         DESCRIPTION?: string;  
-        CATEGORY?: string;
+        CATEGORY?: number;
         STATUS?: string;  
-        RIGHTRESPONSE?: string | undefined;  
-        STARTDATE?: Date;  
-        ENDDATE?: Date;
+        RIGHT_RESPONSE?: string | undefined;  
+        START_DATE?: Date;  
+        END_DATE?: Date;
     }
 
-    export async function saveNewEvent(newEvent: Event) : Promise<Number | undefined>{
+    export async function validateCategory(categoryID: number) : Promise<boolean>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
         let connection = await OracleDB.getConnection({
@@ -37,27 +37,55 @@ export namespace EventsHandler{
             password: process.env.ORACLE_PASSWORD,
             connectString: process.env.ORACLE_CONN_STR
         });
-    
-        await connection.execute(
-            'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHTRESPONSE, :STARTDATE, :ENDDATE',
-            [newEvent.creatorID, newEvent.title, newEvent.description, newEvent.category, newEvent.status, newEvent.rightResponse, newEvent.startDate, newEvent.endDate]
-        );
-    
-        await connection.commit();  
-        
-        const addedEvent = await connection.execute<EventRow>(
-            'SELECT EVENT_ID FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title',
-            [newEvent.creatorID, newEvent.title]
-        );
-    
-        console.dir("ID Novo Evento: "+addedEvent.rows);  // Log para depuração
-    
-        await connection.close();
 
-        if (addedEvent.rows && addedEvent.rows.length > 0){
-            const addedEventID = addedEvent.rows[0].EVENT_ID;
-            return addedEventID;
+        const result = await connection.execute<any[]>(
+            'SELECT NAME FROM CATEGORY WHERE CATEGORY_ID = :id'
+            [categoryID]
+        );
+        
+        if(result.rows && result.rows.length > 0){
+            console.dir('Categoria escolhida: '+result.rows[0][0]);
+            return true;
         }
+
+        return false;
+
+    }
+
+    export async function saveNewEvent(newEvent: Event) : Promise<Number | undefined>{
+        
+        if (await validateCategory(newEvent.category)){
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+            let connection = await OracleDB.getConnection({
+                user: process.env.ORACLE_USER,
+                password: process.env.ORACLE_PASSWORD,
+                connectString: process.env.ORACLE_CONN_STR
+            });
+
+            await connection.execute(
+                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :START_DATE, :END_DATE',
+                [newEvent.creatorID, newEvent.title, newEvent.description, newEvent.category, newEvent.status, newEvent.rightResponse, newEvent.startDate, newEvent.endDate]
+            );
+        
+            await connection.commit();  
+            
+            const addedEvent = await connection.execute<EventRow>(
+                'SELECT EVENT_ID FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title',
+                [newEvent.creatorID, newEvent.title]
+            );
+        
+            console.dir("ID Novo Evento: "+addedEvent.rows);  // Log para depuração
+        
+            await connection.close();
+
+            if (addedEvent.rows && addedEvent.rows.length > 0){
+                const addedEventID = addedEvent.rows[addedEvent.rows.length-1].EVENT_ID;
+                return addedEventID;
+            }
+            return undefined;
+        }
+        
         return undefined;
     }
 
@@ -75,7 +103,9 @@ export namespace EventsHandler{
         const eEndDate = req.get('endDate');
         const eEndHour = req.get('endHour');
 
-        if(eCreatorToken && eTitle && eDescription && eCategory && eStartDate && eStartHour && eEndDate && eEndHour){
+        const eConvertedCategory: number = Number(eCategory);
+
+        if(eCreatorToken && eTitle && eDescription && eConvertedCategory && eStartDate && eStartHour && eEndDate && eEndHour){
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
             if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID){
                 let eStatus: string = "Pending";
@@ -85,7 +115,7 @@ export namespace EventsHandler{
                     creatorID: eCreatorID,
                     title: eTitle,
                     description: eDescription,
-                    category: eCategory,
+                    category: eConvertedCategory,
                     status: eStatus,
                     rightResponse: "",
                     startDate: eFullStartDate,
