@@ -19,6 +19,31 @@ export namespace AccountsHandler {
         EMAIL?: string | undefined;
     };
 
+    export async function getUserID(userToken: string) : Promise<number | undefined>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+
+        const results = await connection.execute<AccountRow>(
+            "SELECT ID FROM ACCOUNTS WHERE TOKEN = :token",
+            [userToken]
+        );
+
+        await connection.close(); 
+        console.dir("getUserID: "+results.rows);
+
+        if (results.rows && results.rows.length > 0){
+            const userID = results.rows[0].ID;
+            return userID;
+        }
+
+        return undefined;
+    }
+
     export async function saveNewAccount(ua: UserAccount): Promise<string | undefined> {
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
@@ -40,13 +65,13 @@ export namespace AccountsHandler {
             [ua.email]
         );
     
-        console.dir(addedAccount.rows);  // Log para depuração
+        console.dir("Token Nova Conta: "+addedAccount.rows);  // Log para depuração
     
         await connection.close();
     
         if (addedAccount.rows && addedAccount.rows.length > 0) {
             const accountToken: string = addedAccount.rows[0].TOKEN;
-            return accountToken; // arrumar retorno
+            return accountToken; 
         }
     
         return undefined;
@@ -124,7 +149,7 @@ export namespace AccountsHandler {
         );
 
         await connection.close(); 
-        console.dir(results.rows);
+        console.dir("Token Login: "+results.rows);
         if (results.rows && results.rows.length > 0) {
             const logedAccountToken = results.rows[0].TOKEN; 
             
