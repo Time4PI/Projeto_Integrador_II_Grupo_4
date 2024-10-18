@@ -14,6 +14,9 @@ export namespace AccountsHandler {
 
     export type AccountRow = {
         TOKEN: string;
+        ID?: number | undefined;
+        COMPLETE_NAME?: string | undefined;
+        EMAIL?: string | undefined;
     };
 
     export async function saveNewAccount(ua: UserAccount): Promise<string | undefined> {
