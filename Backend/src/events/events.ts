@@ -81,12 +81,12 @@ export namespace EventsHandler{
                 'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title',
                 [newEvent.creatorID, newEvent.title]
             );
-            console.dir("ID Novo Evento: ");
-            console.dir(addedEvent.rows);  // Log para depuração
         
             await connection.close();
 
             if (addedEvent.rows && addedEvent.rows.length > 0){
+                console.dir("ID Novo Evento: ");
+                console.dir(addedEvent.rows[addedEvent.rows.length-1]);  // Log para depuração
                 const addedEventID = addedEvent.rows[addedEvent.rows.length-1].EVENT_ID;
                 return addedEventID;
             }
@@ -113,10 +113,8 @@ export namespace EventsHandler{
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
             if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID){
                 let eStatus: string = "Pending";
-                let eFullStartDate = new Date (`${eStartDate}TT${eEndHour}`);      //ex: "2024-12-25T15:00:00"
-                let eFullEndDate = new Date (`${eEndDate}`);   
-                eFullEndDate.setMilliseconds(0);
-                eFullStartDate.setMilliseconds(0);                 
+                let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
+                let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
                 
                 console.dir(eFullEndDate);  //depuração
 
