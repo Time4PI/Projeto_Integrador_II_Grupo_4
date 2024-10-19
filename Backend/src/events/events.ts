@@ -13,6 +13,7 @@ export namespace EventsHandler{
         category: number;
         status: string;  //Valor padrão de esperando moderação (Pending, Reproved, Aproved, Closed, Deleted)
         rightResponse: string | undefined;  //undefined por padrão, muda quando admin da a resposta
+        eventDate: Date;
         startDate: Date;   //estudar o tipo date
         endDate: Date;
     };
@@ -25,6 +26,7 @@ export namespace EventsHandler{
         CATEGORY?: number;
         STATUS?: string;  
         RIGHT_RESPONSE?: string | undefined;  
+        EVENT_DATE?: Date;
         START_DATE?: Date;  
         END_DATE?: Date;
     };
@@ -71,14 +73,14 @@ export namespace EventsHandler{
             });
 
             await connection.execute(
-                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :START_DATE, :END_DATE)',
-                [newEvent.creatorID, newEvent.title, newEvent.description, newEvent.category, newEvent.status, newEvent.rightResponse, newEvent.startDate, newEvent.endDate]
+                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
+                [newEvent.creatorID, newEvent.title, newEvent.description, newEvent.category, newEvent.status, newEvent.rightResponse, newEvent.eventDate, newEvent.startDate, newEvent.endDate]
             );
         
             await connection.commit();  
             
             const addedEvent = await connection.execute<EventRow>(
-                'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title',
+                'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
                 [newEvent.creatorID, newEvent.title]
             );
         
@@ -105,17 +107,21 @@ export namespace EventsHandler{
         const eTitle = req.get('title');
         const eDescription = req.get('description');
         const eCategory = Number(req.get('category'));
+        const eEventDate = req.get('eventDate');
         const eStartDate = req.get('startDate');
         const eStartHour = req.get('startHour');
         const eEndDate = req.get('endDate');
-        const eEndHour = req.get('endHour') 
-        if(eCreatorToken && eTitle && eDescription && eCategory && eStartDate && eStartHour && eEndDate && eEndHour){
+        const eEndHour = req.get('endHour');
+
+
+        if(eCreatorToken && eTitle && eDescription && eCategory && eEventDate && eStartDate && eStartHour && eEndDate && eEndHour){
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
             if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID){
                 let eStatus: string = "Pending";
                 let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
                 let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
-                
+                let eFullEventDate = new Date(`${eEventDate}T00:00:00`);
+
                 console.dir(eFullEndDate);  //depuração
 
                 let newEvent: Event = {
@@ -125,9 +131,12 @@ export namespace EventsHandler{
                     category: eCategory,
                     status: eStatus,
                     rightResponse: "",
+                    eventDate: eFullEventDate,
                     startDate: eFullStartDate,
                     endDate: eFullEndDate
                 }
+
+
                 const newEventID = await saveNewEvent(newEvent);
                 if (newEventID){
                     res.statusCode = 200; 
