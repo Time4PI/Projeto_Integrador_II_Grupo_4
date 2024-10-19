@@ -98,10 +98,6 @@ export namespace EventsHandler{
         return undefined;
     }
 
-    function deleteEvent(email: string, title: string){
-
-    }
-
     export const addNewEventHandler: RequestHandler = async(req: Request, res: Response) => {
         const eCreatorToken = req.get('creatorToken');
         const eTitle = req.get('title');
@@ -157,6 +153,75 @@ export namespace EventsHandler{
 
     }
 
+    export async function getFilteredEvents(status: string | undefined, date: string | undefined) : Promise<EventRow[] | undefined>{
+        let baseQuery: string = 'SELECT * FROM EVENTS WHERE 1 = 1 ';
+        let queryParams: any[] = [];
+        let currDate = new Date();
+
+
+        if (status != 'Any'){
+            baseQuery += 'AND STATUS = :status ';
+            queryParams.push(status);
+        }
+
+        if (date != 'Any'){
+            if (date === 'Future'){
+                baseQuery += 'AND EVENT_DATE > :currdate ';
+            } else if (date === 'Past') {
+                baseQuery += 'AND EVENT_DATE < :currdate ';
+
+            }
+            queryParams.push(currDate);
+        }
+
+        baseQuery += 'ORDER BY EVENT_ID ASC';
+
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+        
+        const results = await connection.execute<EventRow>(
+            baseQuery, queryParams
+        );
+
+        connection.close();
+
+        if (results.rows && results.rows.length > 0){
+            return results.rows;
+        }
+
+        return undefined;
+    }
+
+    export const getEventsHandler: RequestHandler = async (req: Request,  res: Response) =>{
+        const eStatus = req.get('status'); //Valores (Pending, Reproved, Aproved, Closed, Deleted) or Any
+        const eDate = req.get('date');    //Respostas esperadas: Future, Past or Any
+
+        if (eStatus && eDate){
+            const fetchedEvents: EventRow[] | undefined = await getFilteredEvents(eStatus, eDate);
+            if (fetchedEvents){
+                res.statusCode = 200;
+                const response = {
+                    mensage: 'Eventos Filtrados: ',
+                    events: fetchedEvents
+                };
+                
+                res.json(response);
+    
+            } else {
+                res.statusCode = 200;
+                res.send('Nenhum evento encontrado')
+            }
+        } else {
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes."); 
+        }
+    }
+
     export const deleteEventHandler: RequestHandler = (req: Request, res: Response) =>{
         const eCreatorEmail = req.get('creatorEmail');
         const eTitle = req.get('title');
@@ -167,12 +232,5 @@ export namespace EventsHandler{
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes."); 
         }
-    }
-    export const getEventsHandler: RequestHandler = (req: Request,  res: Response) =>{
-        const eCreatorEmail = req.query.creatorEmail as string;
-        const eCategory = req.query.category as string;
-        const eStatus = req.query.status as string;
-
-        
     }
 }

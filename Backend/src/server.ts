@@ -21,7 +21,7 @@ route.get('/login', AccountsHandler.loginHandler);
 
 route.put('/addNewEvent', EventsHandler.addNewEventHandler);
 
-route.get('/getEvents', );
+route.get('/getEvents', EventsHandler.getEventsHandler);
 
 route.delete('/deleteEvent', );
 
