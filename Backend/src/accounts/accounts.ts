@@ -29,12 +29,13 @@ export namespace AccountsHandler {
         });
 
         const results = await connection.execute<AccountRow>(
-            "SELECT ID FROM ACCOUNTS WHERE TOKEN = :token",
+            "SELECT TOKEN, ID FROM ACCOUNTS WHERE TOKEN = :token",
             [userToken]
         );
 
         await connection.close(); 
-        console.dir("getUserID: "+results.rows);
+        console.dir("getUserID: ");
+        console.dir(results.rows);
 
         if (results.rows && results.rows.length > 0){
             const userID = results.rows[0].ID;
@@ -64,8 +65,8 @@ export namespace AccountsHandler {
             'SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email',
             [ua.email]
         );
-    
-        console.dir("Token Nova Conta: "+addedAccount.rows);  // Log para depuração
+        console.dir("Token Nova Conta: ");
+        console.dir(addedAccount.rows);  // Log para depuração
     
         await connection.close();
     
@@ -149,7 +150,8 @@ export namespace AccountsHandler {
         );
 
         await connection.close(); 
-        console.dir("Token Login: "+results.rows);
+        console.dir("Token Login: ");
+        console.dir(results.rows);
         if (results.rows && results.rows.length > 0) {
             const logedAccountToken = results.rows[0].TOKEN; 
             

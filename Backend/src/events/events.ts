@@ -27,7 +27,12 @@ export namespace EventsHandler{
         RIGHT_RESPONSE?: string | undefined;  
         START_DATE?: Date;  
         END_DATE?: Date;
-    }
+    };
+
+    export type categoryRow = {
+        CATEGORY_ID: number;
+        NAME: string;
+    };
 
     export async function validateCategory(categoryID: number) : Promise<boolean>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
@@ -38,13 +43,15 @@ export namespace EventsHandler{
             connectString: process.env.ORACLE_CONN_STR
         });
 
-        const result = await connection.execute<any[]>(
-            'SELECT NAME FROM CATEGORY WHERE CATEGORY_ID = :id'
+        const result = await connection.execute<categoryRow>(
+            'SELECT NAME FROM CATEGORY WHERE CATEGORY_ID = :id',
             [categoryID]
         );
-        
+
+        connection.close();
+        console.dir('Categoria escolhida: ');
+        console.dir(result.rows);
         if(result.rows && result.rows.length > 0){
-            console.dir('Categoria escolhida: '+result.rows[0][0]);
             return true;
         }
 
@@ -64,18 +71,18 @@ export namespace EventsHandler{
             });
 
             await connection.execute(
-                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :START_DATE, :END_DATE',
+                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :START_DATE, :END_DATE)',
                 [newEvent.creatorID, newEvent.title, newEvent.description, newEvent.category, newEvent.status, newEvent.rightResponse, newEvent.startDate, newEvent.endDate]
             );
         
             await connection.commit();  
             
             const addedEvent = await connection.execute<EventRow>(
-                'SELECT EVENT_ID FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title',
+                'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title',
                 [newEvent.creatorID, newEvent.title]
             );
-        
-            console.dir("ID Novo Evento: "+addedEvent.rows);  // Log para depuração
+            console.dir("ID Novo Evento: ");
+            console.dir(addedEvent.rows);  // Log para depuração
         
             await connection.close();
 
@@ -97,25 +104,27 @@ export namespace EventsHandler{
         const eCreatorToken = req.get('creatorToken');
         const eTitle = req.get('title');
         const eDescription = req.get('description');
-        const eCategory = req.get('category');
+        const eCategory = Number(req.get('category'));
         const eStartDate = req.get('startDate');
         const eStartHour = req.get('startHour');
         const eEndDate = req.get('endDate');
-        const eEndHour = req.get('endHour');
-
-        const eConvertedCategory: number = Number(eCategory);
-
-        if(eCreatorToken && eTitle && eDescription && eConvertedCategory && eStartDate && eStartHour && eEndDate && eEndHour){
+        const eEndHour = req.get('endHour') 
+        if(eCreatorToken && eTitle && eDescription && eCategory && eStartDate && eStartHour && eEndDate && eEndHour){
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
             if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID){
                 let eStatus: string = "Pending";
-                let eFullStartDate = new Date (eStartDate+"T"+eStartHour);      //ex: "2024-12-25T15:00:00"
-                let eFullEndDate = new Date (eEndDate+"T"+eEndHour);
+                let eFullStartDate = new Date (`${eStartDate}TT${eEndHour}`);      //ex: "2024-12-25T15:00:00"
+                let eFullEndDate = new Date (`${eEndDate}`);   
+                eFullEndDate.setMilliseconds(0);
+                eFullStartDate.setMilliseconds(0);                 
+                
+                console.dir(eFullEndDate);  //depuração
+
                 let newEvent: Event = {
                     creatorID: eCreatorID,
                     title: eTitle,
                     description: eDescription,
-                    category: eConvertedCategory,
+                    category: eCategory,
                     status: eStatus,
                     rightResponse: "",
                     startDate: eFullStartDate,
@@ -157,22 +166,6 @@ export namespace EventsHandler{
         const eCategory = req.query.category as string;
         const eStatus = req.query.status as string;
 
-        let fillteredEvents = eventsDatabase;
-
-        if (eCreatorEmail) {
-            fillteredEvents = fillteredEvents.filter(event => event.creatorEmail === eCreatorEmail);
-        }
-        if (eCategory) {
-            fillteredEvents = fillteredEvents.filter(event => event.category === eCategory);
-        }
-        if (eStatus) {
-            fillteredEvents = fillteredEvents.filter(event => event.status === eStatus);
-        }
-    
-        if (fillteredEvents.length > 0) {
-            res.status(200).json(fillteredEvents);
-        } else {
-            res.status(404).send("Não foi encontrado nenhum evento");
-        }
+        
     }
 }
