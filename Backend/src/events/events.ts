@@ -196,6 +196,7 @@ export namespace EventsHandler{
 
         return undefined;
     }
+    export const getEventsHandler: RequestHandler = (req: Request, res: Response) => {
 
     export const getEventsHandler: RequestHandler = async (req: Request,  res: Response) =>{
         const eStatus = req.get('status'); //Valores (Pending, Reproved, Aproved, Closed, Deleted) or Any
@@ -234,3 +235,4 @@ export namespace EventsHandler{
         }
     }
 }
+
