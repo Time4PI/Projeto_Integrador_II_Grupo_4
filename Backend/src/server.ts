@@ -23,7 +23,7 @@ route.put('/addNewEvent', EventsHandler.addNewEventHandler);
 
 route.get('/getEvents', EventsHandler.getEventsHandler);
 
-route.delete('/deleteEvent', );
+route.delete('/deleteEvent', EventsHandler.deleteEventHandler);
 
 route.put('/evaluateNewEvent', );
 

@@ -11,7 +11,7 @@ export namespace EventsHandler{
         title: string;   //até 50 caracteres
         description: string;  //até 150 caracteres
         category: number;
-        status: string;  //Valor padrão de esperando moderação (Pending, Reproved, Aproved, Closed, Deleted)
+        status: string;  //Valor padrão de esperando moderação (Pending, Reproved, Approved, Closed, Deleted)
         rightResponse: string | undefined;  //undefined por padrão, muda quando admin da a resposta
         eventDate: Date;
         startDate: Date;   //estudar o tipo date
@@ -138,7 +138,7 @@ export namespace EventsHandler{
                     res.statusCode = 200; 
                     res.send(`Novo evento adicionado. Código: ${newEventID}`);
                 } else {
-                    res.statusCode = 400; 
+                    res.statusCode = 500; 
                     res.send(`Falha ao adicionar o evento`);
                 }
             }else {
@@ -196,10 +196,9 @@ export namespace EventsHandler{
 
         return undefined;
     }
-    export const getEventsHandler: RequestHandler = (req: Request, res: Response) => {
 
     export const getEventsHandler: RequestHandler = async (req: Request,  res: Response) =>{
-        const eStatus = req.get('status'); //Valores (Pending, Reproved, Aproved, Closed, Deleted) or Any
+        const eStatus = req.get('status'); //Valores (Pending, Reproved, Approved, Closed, Deleted) or Any
         const eDate = req.get('date');    //Respostas esperadas: Future, Past or Any
 
         if (eStatus && eDate){
@@ -214,7 +213,7 @@ export namespace EventsHandler{
                 res.json(response);
     
             } else {
-                res.statusCode = 200;
+                res.statusCode = 204;
                 res.send('Nenhum evento encontrado')
             }
         } else {
@@ -223,12 +222,68 @@ export namespace EventsHandler{
         }
     }
 
-    export const deleteEventHandler: RequestHandler = (req: Request, res: Response) =>{
-        const eCreatorEmail = req.get('creatorEmail');
-        const eTitle = req.get('title');
+    async function deleteEvent(userToken: string, eventID: number) : Promise<number>{
+        const userID = await AccountsHandler.getUserID(userToken);
 
-        if (eCreatorEmail && eTitle){
+        if (userID){
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+            let connection = await OracleDB.getConnection({
+                user: process.env.ORACLE_USER,
+                password: process.env.ORACLE_PASSWORD,
+                connectString: process.env.ORACLE_CONN_STR
+            });
+            
+            const eventInformations = await connection.execute<EventRow>(
+                'SELECT * FROM EVENTS WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid AND STATUS IN(\'Pending\', \'Approved\')',
+                [userID, eventID]
+            );
 
+            if (eventInformations.rows && eventInformations.rows.length > 0){ //Depois que fizer o de Apostar precisa verificar se n tem aposta
+                await connection.execute(
+                    'UPDATE EVENTS SET STATUS = \'Deleted\' WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
+                    [userID, eventID]
+                );
+                connection.commit()
+                
+                const updateConfirmation = await connection.execute<EventRow>(
+                    'SELECT STATUS FROM EVENTS WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
+                    [userID, eventID]
+                );
+
+                connection.close();
+
+                if (updateConfirmation.rows && updateConfirmation.rows.length > 0){
+                    console.dir(updateConfirmation.rows[0])
+                    return 0;  //Ocoreu com sucesso
+                }
+                return 1;  //Falhou em concluir o update
+            }
+        }
+
+        return 2;  //parametros invalidos
+    }
+
+    export const deleteEventHandler: RequestHandler = async(req: Request, res: Response) =>{
+        const eCreatorToken = req.get('creatorToken');
+        const eEventID = Number(req.get('eventID'));
+
+        if (eCreatorToken && eEventID){
+            const deletionResult: number = await deleteEvent(eCreatorToken, eEventID);
+
+            if(deletionResult === 0){
+                res.statusCode = 200;
+                res.send('Evento deletado com sucesso');
+
+            }else if(deletionResult === 1){
+                res.statusCode = 500;
+                res.send('Servidor falhou em deletar o evento');
+
+            }else{
+                res.statusCode = 403;
+                res.send('Usuário não tem permissão para alterar o evento');
+
+            }
         } else {
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes."); 
