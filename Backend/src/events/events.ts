@@ -2,6 +2,7 @@ import { Request, Response, RequestHandler, response } from "express";
 import OracleDB from "oracledb";
 import { AccountsHandler } from "../accounts/accounts"; 
 import dotenv from 'dotenv'; 
+import nodemailer from 'nodemailer';
 dotenv.config();
 
 export namespace EventsHandler{
@@ -188,7 +189,7 @@ export namespace EventsHandler{
             baseQuery, queryParams
         );
 
-        connection.close();
+        await connection.close();
 
         if (results.rows && results.rows.length > 0){
             return results.rows;
@@ -287,6 +288,120 @@ export namespace EventsHandler{
         } else {
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes."); 
+        }
+    }
+
+    async function sendRejectionEmail(email: string, eventTitle: string, eventID:Number, reason: string) {
+        let transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER, 
+                pass: process.env.EMAIL_PASS  
+            }
+        });
+    
+        let mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Seu evento foi reprovado',
+            text: `Seu evento "${eventTitle}" foi reprovado pelo motivo: ${reason}.`
+        };
+    
+        await transporter.sendMail(mailOptions, function(err, data) {
+            if (err) {
+              console.dir("Error " + err);
+            } else {
+              console.dir("Email sent successfully");
+            }
+          });
+    }
+
+    async function evaluateNewEvent(eventID: Number, evaluation: string, reason: string|undefined) : Promise<Number>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+
+        const eventInfo = await connection.execute<EventRow>(
+            'SELECT CREATOR_ID, TITLE, STATUS FROM EVENTS WHERE EVENT_ID = :eventID',
+            [eventID]
+        );
+
+        if (!eventInfo.rows || eventInfo.rows.length === 0) {
+            await connection.close();
+            return 404;
+        }
+
+        const creatorID = eventInfo.rows[0].CREATOR_ID;
+        const eventTitle = eventInfo.rows[0].TITLE;
+        const eventStatus = eventInfo.rows[0].STATUS;
+
+        if (eventStatus !== 'Pending') {
+            await connection.close();
+            return 400;
+        }
+
+        if (evaluation === 'Approved') {
+            await connection.execute(
+                'UPDATE EVENTS SET STATUS = :status WHERE EVENT_ID = :eventID',
+                [evaluation, eventID]
+            );
+            await connection.commit();
+            await connection.close();
+            return 200;
+        }
+
+        if (evaluation === 'Reproved' && creatorID && reason) {
+            await connection.execute(
+                'UPDATE EVENTS SET STATUS = :status WHERE EVENT_ID = :eventID',
+                [evaluation, eventID]
+            );
+            await connection.commit();
+            await connection.close();
+
+            const userEmail = await AccountsHandler.getUserEmail(creatorID);
+            if (userEmail && eventTitle){
+                await sendRejectionEmail(userEmail, eventTitle, eventID, reason);
+                
+            }
+            return 200;
+        }
+
+        return 400;
+    }
+
+    export const evaluateNewEventHandler: RequestHandler = async(req: Request, res: Response) =>{
+        const eEventID = Number(req.get('eventID'));
+        const eEvaluation = req.get('evaluation');  //Approved ou Reproved
+        const eReason = req.get('reason');
+
+        if (eEvaluation === 'Reproved' && !eReason){
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes.");
+        }
+
+        if (eEventID && eEvaluation){
+            const result = await evaluateNewEvent(eEventID, eEvaluation, eReason);
+
+            if(result === 200){
+                res.statusCode = 200;
+                res.send(`Evento marcado como ${eEvaluation} com sucesso!`);
+            }else if(result === 400){
+                res.statusCode = 400;
+                res.send("Evento já avaliado");
+            }else if(result === 404){
+                res.statusCode = 404;
+                res.send("Evento não existe");
+            }
+
+        } else {
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes.");
         }
     }
 }

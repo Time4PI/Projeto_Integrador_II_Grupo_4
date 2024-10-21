@@ -19,6 +19,28 @@ export namespace AccountsHandler {
         EMAIL?: string | undefined;
     };
 
+    export async function getUserEmail(userID: number): Promise<string|undefined>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+
+        const userData = await connection.execute<AccountRow>(
+            'SELECT TOKEN, EMAIL FROM ACCOUNTS WHERE ID = :userid',
+            [userID]
+        );
+        
+        connection.close();
+
+        if (userData.rows && userData.rows.length > 0){
+            return userData.rows[0].EMAIL;
+        }
+        return undefined;
+    }
+
     export async function getUserID(userToken: string) : Promise<number | undefined>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 

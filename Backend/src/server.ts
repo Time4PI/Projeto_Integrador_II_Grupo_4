@@ -25,7 +25,7 @@ route.get('/getEvents', EventsHandler.getEventsHandler);
 
 route.delete('/deleteEvent', EventsHandler.deleteEventHandler);
 
-route.put('/evaluateNewEvent', );
+route.put('/evaluateNewEvent', EventsHandler.evaluateNewEventHandler);
 
 route.put('/addFunds', );
 
