@@ -376,6 +376,7 @@ export namespace EventsHandler{
     }
 
     export const evaluateNewEventHandler: RequestHandler = async(req: Request, res: Response) =>{
+        const pAdminToken = req.get('adminToken');
         const eEventID = Number(req.get('eventID'));
         const eEvaluation = req.get('evaluation');  //Approved ou Reproved
         const eReason = req.get('reason');
@@ -385,21 +386,51 @@ export namespace EventsHandler{
             res.send("Parâmetros inválidos ou faltantes.");
         }
 
-        if (eEventID && eEvaluation){
-            const result = await evaluateNewEvent(eEventID, eEvaluation, eReason);
+        if (eEventID && eEvaluation && pAdminToken){
+            const checkRole: string | undefined = await AccountsHandler.getUserRole(pAdminToken);
 
-            if(result === 200){
-                res.statusCode = 200;
-                res.send(`Evento marcado como ${eEvaluation} com sucesso!`);
-            }else if(result === 400){
-                res.statusCode = 400;
-                res.send("Evento já avaliado");
-            }else if(result === 404){
+            if (checkRole === 'admin'){
+                const result = await evaluateNewEvent(eEventID, eEvaluation, eReason);
+
+                if(result === 200){
+                    res.statusCode = 200;
+                    res.send(`Evento marcado como ${eEvaluation} com sucesso!`);
+                }else if(result === 400){
+                    res.statusCode = 400;
+                    res.send("Evento já avaliado");
+                }else if(result === 404){
+                    res.statusCode = 404;
+                    res.send("Evento não existe");
+                }
+            }else{
+                res.statusCode = 403;
+                res.send("Usuario não possui permissão para essa ação.");
+            }
+        } else {
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes.");
+        }
+    }
+
+    async function searchEvent(keyword: string) : Promise<EventRow[] | undefined>{
+
+    }
+
+    export const searchEventHandler: RequestHandler = async(req: Request, res: Response) =>{
+        const sKeyword = req.get('keyword');
+
+        if(sKeyword){
+            const searchResult: EventRow[] | undefined = await searchEvent(sKeyword);
+
+            if(searchResult){
+
+                
+            }else {
                 res.statusCode = 404;
-                res.send("Evento não existe");
+                res.send("Não existem eventos correspondentes");
             }
 
-        } else {
+        }else{
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes.");
         }

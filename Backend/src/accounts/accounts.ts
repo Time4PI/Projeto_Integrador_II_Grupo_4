@@ -17,7 +17,31 @@ export namespace AccountsHandler {
         ID?: number | undefined;
         COMPLETE_NAME?: string | undefined;
         EMAIL?: string | undefined;
+        ACCOUNT_ROLE?: string | undefined;  //todos cadastrados são 'user', mas tem o 'admin'
     };
+
+    export async function getUserRole(userToken: string) : Promise<string | undefined>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+
+        const userData = await connection.execute<AccountRow>(
+            'SELECT TOKEN, ACCOUNT_ROLE FROM ACCOUNTS WHERE TOKEN = :usertoken',
+            [userToken]
+        );
+        
+        connection.close();
+
+        if (userData.rows && userData.rows.length > 0){
+            return userData.rows[0].ACCOUNT_ROLE;
+        }
+
+        return undefined;
+    }
 
     export async function getUserEmail(userID: number): Promise<string|undefined>{
         OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
@@ -77,7 +101,7 @@ export namespace AccountsHandler {
         });
     
         await connection.execute(
-            'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, dbms_random.string(\'x\',32))',
+            'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, \'user\', dbms_random.string(\'x\',32))',
             [ua.email, ua.password, ua.completeName]
         );
     
