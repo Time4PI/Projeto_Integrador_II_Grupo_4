@@ -413,7 +413,36 @@ export namespace EventsHandler{
     }
 
     async function searchEvent(keyword: string) : Promise<EventRow[] | undefined>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
 
+        const currDate: Date = new Date();
+        const searchLine:string = `%${keyword.toLowerCase()}%`;
+
+        const searchResults = await connection.execute<EventRow>(
+            `SELECT * FROM EVENTS WHERE END_DATE > :currdate AND STATUS = 'Approved' AND (LOWER(TITLE) LIKE :searchline
+            OR LOWER(DESCRIPTION) LIKE :searchline) 
+            ORDER BY END_DATE DESC`,
+            {
+                currdate: currDate,
+                searchline: searchLine
+            }
+        );
+
+        connection.close();
+
+        console.dir(searchResults); //Depurando
+
+        if(searchResults.rows && searchResults.rows.length > 0){
+            return searchResults.rows;
+        }
+
+        return undefined;
     }
 
     export const searchEventHandler: RequestHandler = async(req: Request, res: Response) =>{
@@ -423,8 +452,14 @@ export namespace EventsHandler{
             const searchResult: EventRow[] | undefined = await searchEvent(sKeyword);
 
             if(searchResult){
-
+                res.statusCode = 200;
+                const response = {
+                    mensage: 'Eventos encontrados: ',
+                    events: searchResult
+                };
                 
+                res.json(response);
+
             }else {
                 res.statusCode = 404;
                 res.send("Não existem eventos correspondentes");

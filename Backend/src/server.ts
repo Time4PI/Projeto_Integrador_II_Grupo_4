@@ -35,7 +35,7 @@ route.put('/betOnEvent', );
 
 route.put('/finishEvent', );
 
-route.put('/searchEvent', );
+route.get('/searchEvent', EventsHandler.searchEventHandler);
 
 app.use(route);
 app.listen(port, () => {
