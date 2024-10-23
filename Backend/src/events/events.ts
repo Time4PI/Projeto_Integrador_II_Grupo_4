@@ -3,6 +3,7 @@ import OracleDB from "oracledb";
 import { AccountsHandler } from "../accounts/accounts"; 
 import dotenv from 'dotenv'; 
 import nodemailer from 'nodemailer';
+import { google, GoogleApis } from "googleapis";
 dotenv.config();
 
 export namespace EventsHandler{
@@ -293,14 +294,17 @@ export namespace EventsHandler{
 
     async function sendRejectionEmail(email: string, eventTitle: string, eventID:Number, reason: string) {
         let transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
+            service: 'gmail',
             auth: {
-                user: process.env.EMAIL_USER, 
-                pass: process.env.EMAIL_PASS  
+              type: 'OAuth2',
+              user: process.env.MAIL_USERNAME,
+              pass: process.env.MAIL_PASSWORD,
+              clientId: process.env.OAUTH_CLIENTID,
+              clientSecret: process.env.OAUTH_CLIENT_SECRET,
+              accessToken: process.env.OAUTH_ACCESS_TOKEN,
+              refreshToken: process.env.OAUTH_REFRESH_TOKEN
             }
-        });
+          } as any);
     
         let mailOptions = {
             from: process.env.EMAIL_USER,
