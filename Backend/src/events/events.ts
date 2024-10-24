@@ -3,7 +3,7 @@ import OracleDB from "oracledb";
 import { AccountsHandler } from "../accounts/accounts"; 
 import dotenv from 'dotenv'; 
 import nodemailer from 'nodemailer';
-import { google, GoogleApis } from "googleapis";
+
 dotenv.config();
 
 export namespace EventsHandler{
