@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler, response } from "express";
 import OracleDB from "oracledb";
 import { AccountsHandler } from "../accounts/accounts"; 
+import { TransactionsHandler } from "../transactions/transactions";
 import dotenv from 'dotenv'; 
 import nodemailer from 'nodemailer';
 
@@ -241,7 +242,14 @@ export namespace EventsHandler{
                 [userID, eventID]
             );
 
-            if (eventInformations.rows && eventInformations.rows.length > 0){ //Depois que fizer o de Apostar precisa verificar se n tem aposta
+            const betsInformations = await connection.execute<TransactionsHandler.Bet>(
+                'SELECT BET_ID FROM BETS WHERE EVENT_ID = :eventid',
+                [eventID]
+            );
+
+            console.dir(`Bets feitas: ${betsInformations.rows?.length === 0}`); //depuração
+
+            if (eventInformations.rows && eventInformations.rows.length > 0 && betsInformations.rows?.length === 0){ //Depois que fizer o de Apostar precisa verificar se n tem aposta
                 await connection.execute(
                     'UPDATE EVENTS SET STATUS = \'Deleted\' WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
                     [userID, eventID]
