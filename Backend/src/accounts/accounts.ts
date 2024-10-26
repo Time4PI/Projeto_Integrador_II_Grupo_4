@@ -104,22 +104,30 @@ export namespace AccountsHandler {
             'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, \'user\', dbms_random.string(\'x\',32))',
             [ua.email, ua.password, ua.completeName]
         );
-    
-        await connection.commit();  // Certifique-se de confirmar a transação
-        
+
         const addedAccount = await connection.execute<AccountRow>(
-            'SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email',
+            'SELECT TOKEN, ID FROM ACCOUNTS WHERE EMAIL = :email',
             [ua.email]
         );
-        console.dir("Token Nova Conta: ");
-        console.dir(addedAccount.rows);  // Log para depuração
-    
-        await connection.close();
-    
-        if (addedAccount.rows && addedAccount.rows.length > 0) {
+
+        if (addedAccount.rows && addedAccount.rows.length > 0){
+            await connection.execute(
+                'INSERT INTO WALLET VALUES(:accountid, 0)',
+                [addedAccount.rows[0].ID]
+            );
+        
+            await connection.commit();  
+            
+            console.dir("Token Nova Conta: ");
+            console.dir(addedAccount.rows);  // Log para depuração
+        
+            await connection.close();
+
             const accountToken: string = addedAccount.rows[0].TOKEN;
             return accountToken; 
         }
+        
+        connection.close();
     
         return undefined;
     }
