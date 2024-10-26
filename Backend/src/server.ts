@@ -2,6 +2,7 @@ import express from "express";
 import {Request, Response, Router} from "express";
 import { AccountsHandler } from "./accounts/accounts";
 import { EventsHandler } from "./events/events";
+import { TransactionsHandler } from "./transactions/transactions";
 
 const app = express();
 const route = Router();
@@ -27,7 +28,7 @@ route.delete('/deleteEvent', EventsHandler.deleteEventHandler);
 
 route.put('/evaluateNewEvent', EventsHandler.evaluateNewEventHandler);
 
-route.put('/addFunds', );
+route.put('/addFunds', TransactionsHandler.addFundsHandler);
 
 route.put('/withdrawFunds', );
 
