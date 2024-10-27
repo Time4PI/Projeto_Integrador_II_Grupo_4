@@ -30,7 +30,7 @@ route.put('/evaluateNewEvent', EventsHandler.evaluateNewEventHandler);
 
 route.put('/addFunds', TransactionsHandler.addFundsHandler);
 
-route.put('/withdrawFunds', );
+route.put('/withdrawFunds', TransactionsHandler.withdrawFundsHandler);
 
 route.put('/betOnEvent', );
 
