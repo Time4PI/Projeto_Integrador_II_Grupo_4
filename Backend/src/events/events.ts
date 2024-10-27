@@ -247,7 +247,8 @@ export namespace EventsHandler{
                 [eventID]
             );
 
-            console.dir(`Bets feitas: ${betsInformations.rows?.length === 0}`); //depuração
+            console.dir(`Bets feitas: `); //depuração
+            console.dir(betsInformations.rows)
 
             if (eventInformations.rows && eventInformations.rows.length > 0 && betsInformations.rows?.length === 0){ //Depois que fizer o de Apostar precisa verificar se n tem aposta
                 await connection.execute(

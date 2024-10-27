@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from "express";
 import { AccountsHandler } from "../accounts/accounts";
 import OracleDB from "oracledb";
+import { EventsHandler } from "../events/events";
 
 export namespace TransactionsHandler{
     export type Bet = {
@@ -52,6 +53,8 @@ export namespace TransactionsHandler{
             [accountID, value]
         );
         await connection.close();
+        console.dir('valid wallet: ');
+        console.dir(validWallet.rows?.[0]?.ACCOUNT_ID);
         if (validWallet.rows?.[0]?.ACCOUNT_ID){
             return true;
         }
@@ -430,6 +433,84 @@ export namespace TransactionsHandler{
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes.");
         }
+    }
+
+    async function betOnEvent(bet: Bet):Promise<number>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+
+        let connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+
+        const validEvent = await connection.execute<EventsHandler.EventRow>(
+            'SELECT EVENT_ID FROM EVENTS WHERE EVENT_ID = :eventid AND END_DATE >= :currdate AND STATUS = \'Approved\'',
+            [bet.EVENT_ID, bet.BET_DATE]
+        );
+
+        if(!validEvent.rows?.[0]?.EVENT_ID){
+            connection.close();
+            return 1;
+        }
+
+        const validWallet = await verifyWalletCredit(bet.ACCOUNT_ID, bet.VALUE);
+
+        if(!validWallet){
+            connection.close();
+            return 2;
+        }
+
+        await debitFromWallet(bet.ACCOUNT_ID, bet.VALUE);
+        await connection.execute(
+            'INSERT INTO BETS VALUES(SEQ_BET.NEXTVAL, :accountid, :eventid, :value, :betdate, :betoption)',
+            [bet.ACCOUNT_ID, bet.EVENT_ID, bet.VALUE, bet.BET_DATE, bet.BET_OPTION]
+        );
+        connection.commit();
+        connection.close();
+
+        return 0;
+    }
+
+    export const betOnEventHandler: RequestHandler = async(req: Request, res: Response) =>{
+        const tAccountToken = req.get('accountToken');
+        const tEventID = Number(req.get('eventID'));
+        const tValue = Number(req.get('value'));
+        const tBetOption = req.get('betOption'); //sim ou não
+        
+        if (tAccountToken && tEventID && tValue && tBetOption &&(tValue>0)){
+            const userID = await AccountsHandler.getUserID(tAccountToken);
+            const currdate = new Date();
+
+            if (userID){
+                const newBet: Bet = {
+                    ACCOUNT_ID: userID,
+                    EVENT_ID: tEventID,
+                    VALUE: tValue, 
+                    BET_DATE: currdate,  
+                    BET_OPTION: tBetOption.toLowerCase()
+                }
+                const result = await betOnEvent(newBet);
+                if(result === 0){
+                    res.statusCode = 200;
+                    res.send("Aposta registrada com sucesso.");
+                }else if(result === 1){
+                    res.statusCode = 400;
+                    res.send("Evento Invalido.");
+                }else if(result === 2){
+                    res.statusCode = 402;
+                    res.send("Saldo insuficiente.");
+                }
+
+            }else {
+                res.statusCode = 400;
+                res.send("Parâmetros inválidos ou faltantes.");
+            }
+        }else {
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes.");
+        }
+
     }
 
 }

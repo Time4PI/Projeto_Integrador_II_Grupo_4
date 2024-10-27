@@ -32,7 +32,7 @@ route.put('/addFunds', TransactionsHandler.addFundsHandler);
 
 route.put('/withdrawFunds', TransactionsHandler.withdrawFundsHandler);
 
-route.put('/betOnEvent', );
+route.put('/betOnEvent', TransactionsHandler.betOnEventHandler);
 
 route.put('/finishEvent', );
 
