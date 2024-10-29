@@ -39,132 +39,149 @@ export namespace TransactionsHandler{
         KEY: string;
     };
 
-    async function verifyWalletCredit(accountID: number, value: number):Promise<boolean>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-    
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const validWallet = await connection.execute<Wallet>(
-            'SELECT ACCOUNT_ID FROM WALLET WHERE ACCOUNT_ID = :accountid AND BALLANCE >= :value',
-            [accountID, value]
-        );
-        await connection.close();
-        console.dir('valid wallet: ');
-        console.dir(validWallet.rows?.[0]?.ACCOUNT_ID);
-        if (validWallet.rows?.[0]?.ACCOUNT_ID){
-            return true;
+    async function getOracleConnection() {
+        try {
+            const connection = await OracleDB.getConnection({
+                user: process.env.ORACLE_USER,
+                password: process.env.ORACLE_PASSWORD,
+                connectString: process.env.ORACLE_CONN_STR,
+            });
+            return connection;
+        } catch (error) {
+            console.error('Erro ao conectar ao OracleDB:', error);
+            throw new Error('Falha ao conectar ao banco de dados.');
         }
-        return false;
     }
-
-    async function debitFromWallet(accountID: number, value: number){
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-       await connection.execute(
-        'UPDATE WALLET SET BALLANCE = BALLANCE - :value WHERE ACCOUNT_ID = :accountid',
-        [value, accountID]
-       );
-
-       await connection.commit();
-       await connection.close();
-       
+    async function verifyWalletCredit(accountID: number, value: number): Promise<boolean> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            const validWallet = await connection.execute<Wallet>(
+                'SELECT ACCOUNT_ID FROM WALLET WHERE ACCOUNT_ID = :accountid AND BALLANCE >= :value',
+                [accountID, value]
+            );
+            console.dir('valid wallet: ');
+            console.dir(validWallet.rows?.[0]?.ACCOUNT_ID);
+            return !!validWallet.rows?.[0]?.ACCOUNT_ID;
+    
+        } catch (error) {
+            console.error('Erro ao verificar crédito na carteira:', error);
+            return false;
+        } finally {
+            if (connection) await connection.close();
+        }
     }
-
-    async function registerCreditCard(creditCard: CreditCard):Promise<number|undefined>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-        
-        let cardInformations = await connection.execute<CreditCard>(
-            'SELECT CARD_ID FROM CREDIT_CARD WHERE CARD_NUMBER = :cardnumber',
-            [creditCard.CARD_NUMBER]
-        );
 
-        if(cardInformations.rows?.[0]?.CARD_ID){
-            let cardConfirmation = await connection.execute<CreditCard>(
-                'SELECT CARD_ID FROM CREDIT_CARD WHERE CARD_NUMBER = :cardnumber AND CARD_NAME = :cardname AND CVC = :cvc AND EXPIRATION_DATE = :expirationdate',
+    async function debitFromWallet(accountID: number, value: number) {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            await connection.execute(
+                'UPDATE WALLET SET BALLANCE = BALLANCE - :value WHERE ACCOUNT_ID = :accountid',
+                [value, accountID]
+            );
+            await connection.commit();
+    
+        } catch (error) {
+            console.error('Erro ao debitar da carteira:', error);
+        } finally {
+            if (connection) await connection.close();
+        }
+    }
+    
+
+    async function registerCreditCard(creditCard: CreditCard): Promise<number | undefined> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            let cardInformations = await connection.execute<CreditCard>(
+                'SELECT CARD_ID FROM CREDIT_CARD WHERE CARD_NUMBER = :cardnumber',
+                [creditCard.CARD_NUMBER]
+            );
+    
+            if (cardInformations.rows?.[0]?.CARD_ID) {
+                let cardConfirmation = await connection.execute<CreditCard>(
+                    'SELECT CARD_ID FROM CREDIT_CARD WHERE CARD_NUMBER = :cardnumber AND CARD_NAME = :cardname AND CVC = :cvc AND EXPIRATION_DATE = :expirationdate',
+                    [creditCard.CARD_NUMBER, creditCard.CARD_NAME, creditCard.CVC, creditCard.EXPIRATION_DATE]
+                );
+    
+                if (cardConfirmation.rows?.[0]?.CARD_ID) {
+                    return cardConfirmation.rows[0].CARD_ID;
+                }
+                return undefined;
+            }
+    
+            await connection.execute(
+                'INSERT INTO CREDIT_CARD VALUES(SEQ_CARD.NEXTVAL, :cardnumber, :cardname, :cvc, :expirationdate)',
                 [creditCard.CARD_NUMBER, creditCard.CARD_NAME, creditCard.CVC, creditCard.EXPIRATION_DATE]
             );
-            connection.close();
-
-            if(cardConfirmation.rows?.[0]?.CARD_ID){
-                return cardConfirmation.rows[0].CARD_ID;
-            }
-            return undefined;
-        }
-
-        await connection.execute(
-            'INSERT INTO CREDIT_CARD VALUES(SEQ_CARD.NEXTVAL, :cardnumber, :cardname, :cvc, :expirationdate)',
-            [creditCard.CARD_NUMBER, creditCard.CARD_NAME, creditCard.CVC, creditCard.EXPIRATION_DATE]
-        );
-
-        await connection.commit();
-
-        cardInformations = await connection.execute<CreditCard>(
-            'SELECT CARD_ID FROM CREDIT_CARD WHERE CARD_NUMBER = :cardnumber',
-            [creditCard.CARD_NUMBER]
-        );
-
-        connection.close();
-
-        if (cardInformations.rows?.[0]?.CARD_ID){
-            return cardInformations.rows[0].CARD_ID;
-        }
-        
-        return undefined;
-
-    }
-
-    async function addFunds(accountToken: string, value: number, creditCard: CreditCard):Promise<number>{
-        const accountID = await AccountsHandler.getUserID(accountToken);
-
-        if(!accountID){
-            return 2;
-        }
-
-        const creditCardID = await registerCreditCard(creditCard);
-
-        if (!creditCardID){
-            return 1;
-        }
-
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            await connection.commit();
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-        
-        await connection.execute(
-            'UPDATE WALLET SET BALLANCE = BALLANCE + :value WHERE ACCOUNT_ID = :accountid',
-            [value, accountID]
-        );
-
-        await connection.execute(
-            'INSERT INTO DEPOSITS VALUES(SEQ_DEPOSIT.NEXTVAL, :accountid, :value, :cardid)',
-            [accountID, value, creditCardID]
-        );
-
-        await connection.commit();
-        await connection.close();
-
-        return 0;
+            cardInformations = await connection.execute<CreditCard>(
+                'SELECT CARD_ID FROM CREDIT_CARD WHERE CARD_NUMBER = :cardnumber',
+                [creditCard.CARD_NUMBER]
+            );
+    
+            if (cardInformations.rows?.[0]?.CARD_ID) {
+                return cardInformations.rows[0].CARD_ID;
+            }
+    
+            return undefined;
+    
+        } catch (error) {
+            console.error('Erro ao registrar o cartão de crédito:', error);
+            return undefined;
+        } finally {
+            if (connection) await connection.close();
+        }
     }
+    
+    async function addFunds(accountToken: string, value: number, creditCard: CreditCard): Promise<number> {
+        let connection;
+        try {
+            const accountID = await AccountsHandler.getUserID(accountToken);
+    
+            if (!accountID) {
+                return 2;
+            }
+    
+            const creditCardID = await registerCreditCard(creditCard);
+    
+            if (!creditCardID) {
+                return 1;
+            }
+    
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            await connection.execute(
+                'UPDATE WALLET SET BALLANCE = BALLANCE + :value WHERE ACCOUNT_ID = :accountid',
+                [value, accountID]
+            );
+    
+            await connection.execute(
+                'INSERT INTO DEPOSITS VALUES(SEQ_DEPOSIT.NEXTVAL, :accountid, :value, :cardid)',
+                [accountID, value, creditCardID]
+            );
+            await connection.commit();
+    
+            return 0;
+    
+        } catch (error) {
+            console.error('Erro ao adicionar fundos:', error);
+            return 500;
+        } finally {
+            if (connection) await connection.close();
+        }
+    }    
 
     export const addFundsHandler: RequestHandler = async(req: Request, res: Response) =>{
         const tAccountToken = req.get('accountToken');
@@ -202,90 +219,92 @@ export namespace TransactionsHandler{
         }
     }
 
-    async function registerWithdrawBank(bankAccount: BankAccount):Promise<number|undefined>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    async function registerWithdrawBank(bankAccount: BankAccount): Promise<number | undefined> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        let bankInformation = await connection.execute<BankAccount>(
-            'SELECT BANK_ID FROM BANK_ACCOUNT WHERE ACCOUNT_NUMBER = :accountnumber',
-            [bankAccount.ACCOUNT_NUMBER]
-        );
-
-        if(bankInformation.rows?.[0]?.BANK_ID){ 
-            bankInformation = await connection.execute<BankAccount>(
-                'SELECT BANK_ID FROM BANK_ACCOUNT WHERE ACCOUNT_NUMBER = :accountnumber AND BANK_NUMBER = :banknumber AND AGENCY = :agency',
+            let bankInformation = await connection.execute<BankAccount>(
+                'SELECT BANK_ID FROM BANK_ACCOUNT WHERE ACCOUNT_NUMBER = :accountnumber',
+                [bankAccount.ACCOUNT_NUMBER]
+            );
+    
+            if (bankInformation.rows?.[0]?.BANK_ID) {
+                bankInformation = await connection.execute<BankAccount>(
+                    'SELECT BANK_ID FROM BANK_ACCOUNT WHERE ACCOUNT_NUMBER = :accountnumber AND BANK_NUMBER = :banknumber AND AGENCY = :agency',
+                    [bankAccount.ACCOUNT_NUMBER, bankAccount.BANK_NUMBER, bankAccount.AGENCY]
+                );
+    
+                if (bankInformation.rows?.[0]?.BANK_ID) {
+                    return bankInformation.rows[0].BANK_ID;
+                }
+                return undefined;
+            }
+    
+            await connection.execute(
+                'INSERT INTO BANK_ACCOUNT VALUES(SEQ_BANK.NEXTVAL, :accountnumber, :banknumber, :agency)',
                 [bankAccount.ACCOUNT_NUMBER, bankAccount.BANK_NUMBER, bankAccount.AGENCY]
             );
-            await connection.close();
-            console.dir(`Bank ID: ${bankInformation.rows?.[0]?.BANK_ID}`);
-
-            if(bankInformation.rows?.[0]?.BANK_ID){
+            await connection.commit();
+    
+            bankInformation = await connection.execute<BankAccount>(
+                'SELECT BANK_ID FROM BANK_ACCOUNT WHERE ACCOUNT_NUMBER = :accountnumber',
+                [bankAccount.ACCOUNT_NUMBER]
+            );
+    
+            if (bankInformation.rows?.[0]?.BANK_ID) {
                 return bankInformation.rows[0].BANK_ID;
             }
-
-            return undefined;
-        }
-
-        await connection.execute(
-            'INSERT INTO BANK_ACCOUNT VALUES(SEQ_BANK.NEXTVAL, :accountnumber, :banknumber, :agency)',
-            [bankAccount.ACCOUNT_NUMBER, bankAccount.BANK_NUMBER, bankAccount.AGENCY]
-        ); 
-        await connection.commit();
-
-        bankInformation = await connection.execute<BankAccount>(
-            'SELECT BANK_ID FROM BANK_ACCOUNT WHERE ACCOUNT_NUMBER = :accountnumber',
-            [bankAccount.ACCOUNT_NUMBER]
-        ); 
-        await connection.close();
-        
-        if(bankInformation.rows?.[0]?.BANK_ID){ 
-            return bankInformation.rows?.[0]?.BANK_ID;
-        }
-
-        return undefined;
-    }
-
-    async function registerWithdrawPix(pix: Pix):Promise<number|undefined>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        let pixInformation = await connection.execute<Pix>(
-            'SELECT PIX_ID FROM PIX WHERE KEY = :pixkey',
-            [pix.KEY]
-        );
-
-        if(pixInformation.rows?.[0]?.PIX_ID){
-            await connection.close();
-            return pixInformation.rows[0].PIX_ID;
+            return undefined;
+    
+        } catch (error) {
+            console.error('Erro ao registrar conta bancária para saque:', error);
+            return undefined;
+        } finally {
+            if (connection) await connection.close();
         }
-
-        await connection.execute(
-            'INSERT INTO PIX VALUES(SEQ_PIX.NEXTVAL, :key)',
-            [pix.KEY]
-        );
-        await connection.commit();
-
-        pixInformation = await connection.execute<Pix>(
-            'SELECT PIX_ID FROM PIX WHERE KEY = :pixkey',
-            [pix.KEY]
-        );
-        await connection.close();
-
-        if(pixInformation.rows?.[0]?.PIX_ID){
-            return pixInformation.rows[0].PIX_ID;
+    }
+    
+    async function registerWithdrawPix(pix: Pix): Promise<number | undefined> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            let pixInformation = await connection.execute<Pix>(
+                'SELECT PIX_ID FROM PIX WHERE KEY = :pixkey',
+                [pix.KEY]
+            );
+    
+            if (pixInformation.rows?.[0]?.PIX_ID) {
+                return pixInformation.rows[0].PIX_ID;
+            }
+    
+            await connection.execute(
+                'INSERT INTO PIX VALUES(SEQ_PIX.NEXTVAL, :key)',
+                [pix.KEY]
+            );
+            await connection.commit();
+    
+            pixInformation = await connection.execute<Pix>(
+                'SELECT PIX_ID FROM PIX WHERE KEY = :pixkey',
+                [pix.KEY]
+            );
+    
+            if (pixInformation.rows?.[0]?.PIX_ID) {
+                return pixInformation.rows[0].PIX_ID;
+            }
+    
+            return undefined;
+    
+        } catch (error) {
+            console.error('Erro ao registrar chave Pix para saque:', error);
+            return undefined;
+        } finally {
+            if (connection) await connection.close();
         }
-
-        return undefined;
     }
 
     function WithdrawTax(value: number){
@@ -304,89 +323,98 @@ export namespace TransactionsHandler{
         return 0;
     }
 
-    async function verifyWithdrawQuota(accountID: number, value: number){
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const currdate = new Date();
-
-        const result = await connection.execute<{ TOTAL: number }>(
-            `SELECT SUM(VALUE) AS TOTAL FROM WITHDRAWALS WHERE ACCOUNT_ID = :accountID 
-               AND TRUNC(WITHDRAWAL_DATE) = TRUNC(:currdate)`,
-            [accountID, currdate]
-        );
-        await connection.close();
-        console.dir(`Itens do dia: `)
-        console.dir(result.rows);
-
-        let totalWithdrawnToday = 0;
-        if(result.rows?.[0]?.TOTAL){
-            totalWithdrawnToday = result.rows[0].TOTAL;
+    async function verifyWithdrawQuota(accountID: number, value: number) {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+    
+            const currdate = new Date();
+            const result = await connection.execute<{ TOTAL: number }>(
+                `SELECT SUM(VALUE) AS TOTAL FROM WITHDRAWALS WHERE ACCOUNT_ID = :accountID 
+                 AND TRUNC(WITHDRAWAL_DATE) = TRUNC(:currdate)`,
+                [accountID, currdate]
+            );
+    
+            let totalWithdrawnToday = result.rows?.[0]?.TOTAL || 0;
+            return (totalWithdrawnToday + value) <= 101000;
+    
+        } catch (error) {
+            console.error('Erro ao verificar cota de saque:', error);
+            return false;
+        } finally {
+            if (connection) await connection.close();
         }
-        console.dir(totalWithdrawnToday);
+    }    
 
-        return (totalWithdrawnToday + value) <= 101000;
-    }
-
-    async function withdrawFunds(accountToken: string, value: number, pix: Pix | undefined, bankAccount: BankAccount | undefined):Promise<number>{
-        if (value<=0 || value>101000){
-            return 1;
+    async function withdrawFunds(accountToken: string, value: number, pix: Pix | undefined, bankAccount: BankAccount | undefined): Promise<number> {
+        if (value <= 0 || value > 101000) {
+            return 1; // Erro de valor inválido
         }
-
+    
         const accountID = await AccountsHandler.getUserID(accountToken);
-        if (!accountID){
-            return 1;
+        if (!accountID) {
+            return 1; // Erro ao obter o ID da conta
         }
-
+    
         const validWalletCredit = await verifyWalletCredit(accountID, value);
-        if (!validWalletCredit){
-            return 2;
+        if (!validWalletCredit) {
+            return 2; // Erro: saldo insuficiente
         }
-
+    
         const validDailyQuota = await verifyWithdrawQuota(accountID, value);
-        if(!validDailyQuota){
-            return 3;
+        if (!validDailyQuota) {
+            return 3; // Erro: excedeu a cota diária
         }
+    
         const withdrawTax = await WithdrawTax(value);
-
+    
         let pixID = null;
         let bankID = null;
-        if (pix){
+    
+        if (pix) {
             pixID = await registerWithdrawPix(pix);
-            
         }
-        if (bankAccount){
+    
+        if (bankAccount) {
             bankID = await registerWithdrawBank(bankAccount);
         }
-
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-        const currdate = new Date();
-
-        await connection.execute(
-            `INSERT INTO WITHDRAWALS VALUES(
-                SEQ_WITHDRAWAL.NEXTVAL,
-                :accountid,
-                :value,
-                :withdrawaltax,
-                :currdate,
-                :bankid,
-                :pixid
-            )`,
-            [accountID, value, (value*withdrawTax), currdate,bankID, pixID]
-        );
-
-        await debitFromWallet(accountID, value);
-        connection.commit();
-        connection.close();
-
-        return 0;
+    
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            
+            const currdate = new Date();
+    
+            await connection.execute(
+                `INSERT INTO WITHDRAWALS VALUES(
+                    SEQ_WITHDRAWAL.NEXTVAL,
+                    :accountid,
+                    :value,
+                    :withdrawaltax,
+                    :currdate,
+                    :bankid,
+                    :pixid
+                )`,
+                {
+                    accountid: accountID,
+                    value: value,
+                    withdrawaltax: (value * withdrawTax),
+                    currdate: currdate,
+                    bankid: bankID,
+                    pixid: pixID
+                }
+            );
+    
+            await debitFromWallet(accountID, value);
+            await connection.commit();
+    
+            return 0; // Sucesso
+        } catch (error) {
+            console.error('Erro ao sacar fundos:', error);
+            return 500; // Erro interno
+        } finally {
+            if (connection) await connection.close();
+        }
     }
 
     export const withdrawFundsHandler: RequestHandler = async(req: Request, res: Response) =>{
@@ -435,43 +463,44 @@ export namespace TransactionsHandler{
         }
     }
 
-    async function betOnEvent(bet: Bet):Promise<number>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const validEvent = await connection.execute<EventsHandler.EventRow>(
-            'SELECT EVENT_ID FROM EVENTS WHERE EVENT_ID = :eventid AND END_DATE >= :currdate AND STATUS = \'Approved\'',
-            [bet.EVENT_ID, bet.BET_DATE]
-        );
-
-        if(!validEvent.rows?.[0]?.EVENT_ID){
-            connection.close();
-            return 1;
+    async function betOnEvent(bet: Bet): Promise<number> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            const validEvent = await connection.execute<EventsHandler.EventRow>(
+                'SELECT EVENT_ID FROM EVENTS WHERE EVENT_ID = :eventid AND END_DATE >= :currdate AND STATUS = \'Approved\'',
+                [bet.EVENT_ID, bet.BET_DATE]
+            );
+    
+            if (!validEvent.rows?.[0]?.EVENT_ID) {
+                return 1;
+            }
+    
+            const validWallet = await verifyWalletCredit(bet.ACCOUNT_ID, bet.VALUE);
+    
+            if (!validWallet) {
+                return 2;
+            }
+    
+            await debitFromWallet(bet.ACCOUNT_ID, bet.VALUE);
+            await connection.execute(
+                'INSERT INTO BETS VALUES(SEQ_BET.NEXTVAL, :accountid, :eventid, :value, :betdate, :betoption)',
+                [bet.ACCOUNT_ID, bet.EVENT_ID, bet.VALUE, bet.BET_DATE, bet.BET_OPTION]
+            );
+            await connection.commit();
+    
+            return 0;
+    
+        } catch (error) {
+            console.error('Erro ao realizar aposta no evento:', error);
+            return 500;
+        } finally {
+            if (connection) await connection.close();
         }
-
-        const validWallet = await verifyWalletCredit(bet.ACCOUNT_ID, bet.VALUE);
-
-        if(!validWallet){
-            connection.close();
-            return 2;
-        }
-
-        await debitFromWallet(bet.ACCOUNT_ID, bet.VALUE);
-        await connection.execute(
-            'INSERT INTO BETS VALUES(SEQ_BET.NEXTVAL, :accountid, :eventid, :value, :betdate, :betoption)',
-            [bet.ACCOUNT_ID, bet.EVENT_ID, bet.VALUE, bet.BET_DATE, bet.BET_OPTION]
-        );
-        connection.commit();
-        connection.close();
-
-        return 0;
     }
-
+    
     export const betOnEventHandler: RequestHandler = async(req: Request, res: Response) =>{
         const tAccountToken = req.get('accountToken');
         const tEventID = Number(req.get('eventID'));
@@ -513,86 +542,84 @@ export namespace TransactionsHandler{
 
     }
 
-    async function finishEvent(admToken: string, eventID: number, verdict: string):Promise<number>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-        const connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        if(verdict != 'sim' && verdict != 'não'){
-            connection.close();
-            return 400;
-        }
-
-        const userRole = await AccountsHandler.getUserRole(admToken);
-        if (userRole !== "admin") {
-            connection.close();
-            return 403;
-        }
-
-        const eventResult = await connection.execute(
-            `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`,
-            [eventID]
-        );
-
-        if (!eventResult.rows || eventResult.rows.length === 0) {
-            await connection.close();
-            return 404;
-        }
-
-        await connection.execute(
-            `UPDATE EVENTS 
-             SET STATUS = 'Closed', RIGHT_RESPONSE = :verdict 
-             WHERE EVENT_ID = :eventID`,
-            [verdict, eventID]
-        );
-        
-
-        const totalBets = await connection.execute<Bet>(
-            `SELECT VALUE FROM BETS 
-             WHERE EVENT_ID = :eventID`,
-            [eventID]
-        );
-
-        const winningBetsResult = await connection.execute<Bet>(
-            `SELECT ACCOUNT_ID, VALUE FROM BETS 
-             WHERE EVENT_ID = :eventID AND BET_OPTION = :verdict`,
-            [eventID, verdict]
-        );
-
-        if(!winningBetsResult.rows?.[0]?.ACCOUNT_ID || !totalBets.rows?.[0]?.VALUE){
-            connection.close();
-            return 0;
-        }
-
-        let totalBetValue = 0;
-        for(var i = 0; i < totalBets.rows.length; i++){
-            totalBetValue += totalBets.rows[i].VALUE;
-        }
-
-        let totalWinningBetValue = 0;
-        for(var i = 0; i < winningBetsResult.rows.length; i++){
-            totalWinningBetValue += winningBetsResult.rows[i].VALUE;
-        }
-        
-        for(var i = 0; i < winningBetsResult.rows.length; i++){
-            const winningAmount = (winningBetsResult.rows[i].VALUE / totalWinningBetValue) * totalBetValue;
-
-            await connection.execute(
-                `UPDATE WALLET 
-                 SET BALLANCE = BALLANCE + :winningAmount 
-                 WHERE ACCOUNT_ID = :accountID`,
-                [winningAmount, winningBetsResult.rows[i].ACCOUNT_ID]
+    async function finishEvent(admToken: string, eventID: number, verdict: string): Promise<number> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            if (verdict !== 'sim' && verdict !== 'não') {
+                return 400;
+            }
+    
+            const userRole = await AccountsHandler.getUserRole(admToken);
+            if (userRole !== "admin") {
+                return 403;
+            }
+    
+            const eventResult = await connection.execute(
+                `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`,
+                [eventID]
             );
+    
+            if (!eventResult.rows || eventResult.rows.length === 0) {
+                return 404;
+            }
+    
+            await connection.execute(
+                `UPDATE EVENTS 
+                 SET STATUS = 'Closed', RIGHT_RESPONSE = :verdict 
+                 WHERE EVENT_ID = :eventID`,
+                [verdict, eventID]
+            );
+    
+            const totalBets = await connection.execute<Bet>(
+                `SELECT VALUE FROM BETS 
+                 WHERE EVENT_ID = :eventID`,
+                [eventID]
+            );
+    
+            const winningBetsResult = await connection.execute<Bet>(
+                `SELECT ACCOUNT_ID, VALUE FROM BETS 
+                 WHERE EVENT_ID = :eventID AND BET_OPTION = :verdict`,
+                [eventID, verdict]
+            );
+    
+            if (!winningBetsResult.rows?.[0]?.ACCOUNT_ID || !totalBets.rows?.[0]?.VALUE) {
+                return 0;
+            }
+    
+            let totalBetValue = 0;
+            for (var i = 0; i < totalBets.rows.length; i++) {
+                totalBetValue += totalBets.rows[i].VALUE;
+            }
+    
+            let totalWinningBetValue = 0;
+            for (var i = 0; i < winningBetsResult.rows.length; i++) {
+                totalWinningBetValue += winningBetsResult.rows[i].VALUE;
+            }
+    
+            for (var i = 0; i < winningBetsResult.rows.length; i++) {
+                const winningAmount = (winningBetsResult.rows[i].VALUE / totalWinningBetValue) * totalBetValue;
+    
+                await connection.execute(
+                    `UPDATE WALLET 
+                     SET BALLANCE = BALLANCE + :winningAmount 
+                     WHERE ACCOUNT_ID = :accountID`,
+                    [winningAmount, winningBetsResult.rows[i].ACCOUNT_ID]
+                );
+            }
+    
+            await connection.commit();
+            return 0;
+    
+        } catch (error) {
+            console.error('Erro ao finalizar evento:', error);
+            return 500;
+        } finally {
+            if (connection) await connection.close();
         }
-
-        await connection.commit(); // Confirma todas as operações de atualização
-        await connection.close();
-
-        return 0;
-    }
+    }    
 
     export const finishEventHandler: RequestHandler = async(req: Request, res: Response) =>{
         const tAdmToken = req.get("admToken");

@@ -39,65 +39,72 @@ export namespace EventsHandler{
         NAME: string;
     };
 
-    export async function validateCategory(categoryID: number) : Promise<boolean>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-    
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const result = await connection.execute<categoryRow>(
-            'SELECT NAME FROM CATEGORY WHERE CATEGORY_ID = :id',
-            [categoryID]
-        );
-
-        connection.close();
-        console.dir('Categoria escolhida: ');
-        console.dir(result.rows);
-        if(result.rows && result.rows.length > 0){
-            return true;
-        }
-
-        return false;
-
-    }
-
-    export async function saveNewEvent(newEvent: Event) : Promise<Number | undefined>{
-        
-        if (await validateCategory(newEvent.category)){
-            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-    
-            let connection = await OracleDB.getConnection({
+    async function getOracleConnection() {
+        try {
+            const connection = await OracleDB.getConnection({
                 user: process.env.ORACLE_USER,
                 password: process.env.ORACLE_PASSWORD,
-                connectString: process.env.ORACLE_CONN_STR
+                connectString: process.env.ORACLE_CONN_STR,
             });
-
-            await connection.execute(
-                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
-                [newEvent.creatorID, newEvent.title, newEvent.description, newEvent.category, newEvent.status, newEvent.rightResponse, newEvent.eventDate, newEvent.startDate, newEvent.endDate]
-            );
-        
-            await connection.commit();  
-            
-            const addedEvent = await connection.execute<EventRow>(
-                'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
-                [newEvent.creatorID, newEvent.title]
-            );
-        
-            await connection.close();
-
-            if (addedEvent.rows && addedEvent.rows.length > 0){
-                console.dir("ID Novo Evento: ");
-                console.dir(addedEvent.rows[addedEvent.rows.length-1]);  // Log para depuração
-                const addedEventID = addedEvent.rows[addedEvent.rows.length-1].EVENT_ID;
-                return addedEventID;
-            }
-            return undefined;
+            return connection;
+        } catch (error) {
+            console.error('Erro ao conectar ao OracleDB:', error);
+            throw new Error('Falha ao conectar ao banco de dados.');
         }
-        
+    }
+
+    export async function validateCategory(categoryID: number): Promise<boolean> {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            const result = await connection.execute<categoryRow>(
+                'SELECT NAME FROM CATEGORY WHERE CATEGORY_ID = :id',
+                [categoryID]
+            );
+            await connection.close();
+            console.dir('Categoria escolhida: ');
+            console.dir(result.rows);
+            if(result.rows && result.rows.length > 0){
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error("Erro ao validar categoria:", error);
+            return false;
+        }
+    }
+
+    export async function saveNewEvent(newEvent: Event): Promise<Number | undefined> {
+        let connection;
+        try {
+            if (await validateCategory(newEvent.category)) {
+                connection = await getOracleConnection();
+                await connection.execute(
+                    'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
+                    [
+                        newEvent.creatorID, newEvent.title, newEvent.description,
+                        newEvent.category, newEvent.status, newEvent.rightResponse,
+                        newEvent.eventDate, newEvent.startDate, newEvent.endDate
+                    ]
+                );
+                await connection.commit();
+
+                const addedEvent = await connection.execute<EventRow>(
+                    'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
+                    [newEvent.creatorID, newEvent.title]
+                );
+                await connection.close();
+
+                if (addedEvent.rows && addedEvent.rows.length > 0) {
+                    console.dir("ID Novo Evento: ");
+                    console.dir(addedEvent.rows[addedEvent.rows.length-1]);
+                    const addedEventID = addedEvent.rows[addedEvent.rows.length - 1].EVENT_ID;
+                    return addedEventID;
+                }
+            }
+        } catch (error) {
+            console.error("Erro ao salvar evento:", error);
+        }
         return undefined;
     }
 
@@ -156,48 +163,49 @@ export namespace EventsHandler{
 
     }
 
-    export async function getFilteredEvents(status: string | undefined, date: string | undefined) : Promise<EventRow[] | undefined>{
-        let baseQuery: string = 'SELECT * FROM EVENTS WHERE 1 = 1 ';
-        let queryParams: any[] = [];
-        let currDate = new Date();
+    export async function getFilteredEvents(status: string | undefined, date: string | undefined): Promise<EventRow[] | undefined> {
+        let connection;
+        try {
+            let baseQuery = 'SELECT * FROM EVENTS WHERE 1 = 1 ';
+            const queryParams: any[] = [];
+            const currDate = new Date();
 
-
-        if (status != 'Any'){
-            baseQuery += 'AND STATUS = :status ';
-            queryParams.push(status);
-        }
-
-        if (date != 'Any'){
-            if (date === 'Future'){
-                baseQuery += 'AND EVENT_DATE > :currdate ';
-            } else if (date === 'Past') {
-                baseQuery += 'AND EVENT_DATE < :currdate ';
-
+            if (status != 'Any'){
+                baseQuery += 'AND STATUS = :status ';
+                queryParams.push(status);
             }
-            queryParams.push(currDate);
-        }
-
-        baseQuery += 'ORDER BY EVENT_ID ASC';
-
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-        
-        const results = await connection.execute<EventRow>(
-            baseQuery, queryParams
-        );
+            if (date != 'Any'){
+                if (date === 'Future'){
+                    baseQuery += 'AND EVENT_DATE > :currdate ';
+                } else if (date === 'Past') {
+                    baseQuery += 'AND EVENT_DATE < :currdate ';
+    
+                }
+                queryParams.push(currDate);
+            }
 
-        await connection.close();
+            baseQuery += 'ORDER BY EVENT_ID ASC';
 
-        if (results.rows && results.rows.length > 0){
-            return results.rows;
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+
+            connection = await getOracleConnection();
+
+            const results = await connection.execute<EventRow>(
+                baseQuery, queryParams
+            );
+
+            await connection.close();
+
+            if (results.rows && results.rows.length > 0){
+                return results.rows;
+            }
+
+            return undefined;
+        } catch (error) {
+            console.error("Erro ao buscar eventos:", error);
+            return undefined;
         }
-
-        return undefined;
     }
 
     export const getEventsHandler: RequestHandler = async (req: Request,  res: Response) =>{
@@ -225,54 +233,58 @@ export namespace EventsHandler{
         }
     }
 
-    async function deleteEvent(userToken: string, eventID: number) : Promise<number>{
-        const userID = await AccountsHandler.getUserID(userToken);
 
-        if (userID){
-            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    async function deleteEvent(userToken: string, eventID: number): Promise<number> {
+        let connection;
+        try {
+            const userID = await AccountsHandler.getUserID(userToken);
     
-            let connection = await OracleDB.getConnection({
-                user: process.env.ORACLE_USER,
-                password: process.env.ORACLE_PASSWORD,
-                connectString: process.env.ORACLE_CONN_STR
-            });
-            
-            const eventInformations = await connection.execute<EventRow>(
-                'SELECT * FROM EVENTS WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid AND STATUS IN(\'Pending\', \'Approved\')',
-                [userID, eventID]
-            );
-
-            const betsInformations = await connection.execute<TransactionsHandler.Bet>(
-                'SELECT BET_ID FROM BETS WHERE EVENT_ID = :eventid',
-                [eventID]
-            );
-
-            console.dir(`Bets feitas: `); //depuração
-            console.dir(betsInformations.rows)
-
-            if (eventInformations.rows && eventInformations.rows.length > 0 && betsInformations.rows?.length === 0){ //Depois que fizer o de Apostar precisa verificar se n tem aposta
-                await connection.execute(
-                    'UPDATE EVENTS SET STATUS = \'Deleted\' WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
+            if (!userID) return 2; // parâmetros inválidos
+    
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+    
+            try {
+                const eventInformations = await connection.execute<EventRow>(
+                    'SELECT * FROM EVENTS WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid AND STATUS IN(\'Pending\', \'Approved\')',
                     [userID, eventID]
                 );
-                connection.commit()
-                
-                const updateConfirmation = await connection.execute<EventRow>(
-                    'SELECT STATUS FROM EVENTS WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
-                    [userID, eventID]
+    
+                const betsInformations = await connection.execute<TransactionsHandler.Bet>(
+                    'SELECT BET_ID FROM BETS WHERE EVENT_ID = :eventid',
+                    [eventID]
                 );
-
-                connection.close();
-
-                if (updateConfirmation.rows && updateConfirmation.rows.length > 0){
-                    console.dir(updateConfirmation.rows[0])
-                    return 0;  //Ocoreu com sucesso
+    
+                console.dir(`Bets feitas: `); // depuração
+                console.dir(betsInformations.rows);
+    
+                if (eventInformations.rows && eventInformations.rows.length > 0 && betsInformations.rows?.length === 0) {
+                    await connection.execute(
+                        'UPDATE EVENTS SET STATUS = \'Deleted\' WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
+                        [userID, eventID]
+                    );
+                    await connection.commit();
+    
+                    const updateConfirmation = await connection.execute<EventRow>(
+                        'SELECT STATUS FROM EVENTS WHERE CREATOR_ID = :userid AND EVENT_ID = :eventid',
+                        [userID, eventID]
+                    );
+    
+                    if (updateConfirmation.rows && updateConfirmation.rows.length > 0) {
+                        console.dir(updateConfirmation.rows[0]);
+                        return 0; // sucesso
+                    }
+                    return 1; // falha no update
                 }
-                return 1;  //Falhou em concluir o update
+            } finally {
+                await connection.close();
             }
+        } catch (error) {
+            console.error('Erro ao deletar evento:', error);
+            return 3; // erro inesperado
         }
-
-        return 2;  //parametros invalidos
+    
+        return 2; // parâmetros inválidos
     }
 
     export const deleteEventHandler: RequestHandler = async(req: Request, res: Response) =>{
@@ -331,63 +343,63 @@ export namespace EventsHandler{
           });
     }
 
-    async function evaluateNewEvent(eventID: Number, evaluation: string, reason: string|undefined) : Promise<Number>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    async function evaluateNewEvent(eventID: number, evaluation: string, reason?: string): Promise<number> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const eventInfo = await connection.execute<EventRow>(
-            'SELECT CREATOR_ID, TITLE, STATUS FROM EVENTS WHERE EVENT_ID = :eventID',
-            [eventID]
-        );
-
-        if (!eventInfo.rows || eventInfo.rows.length === 0) {
-            await connection.close();
-            return 404;
-        }
-
-        const creatorID = eventInfo.rows[0].CREATOR_ID;
-        const eventTitle = eventInfo.rows[0].TITLE;
-        const eventStatus = eventInfo.rows[0].STATUS;
-
-        if (eventStatus !== 'Pending') {
-            await connection.close();
-            return 400;
-        }
-
-        if (evaluation === 'Approved') {
-            await connection.execute(
-                'UPDATE EVENTS SET STATUS = :status WHERE EVENT_ID = :eventID',
-                [evaluation, eventID]
-            );
-            await connection.commit();
-            await connection.close();
-            return 200;
-        }
-
-        if (evaluation === 'Reproved' && creatorID && reason) {
-            await connection.execute(
-                'UPDATE EVENTS SET STATUS = :status WHERE EVENT_ID = :eventID',
-                [evaluation, eventID]
-            );
-            await connection.commit();
-            await connection.close();
-
-            const userEmail = await AccountsHandler.getUserEmail(creatorID);
-            if (userEmail && eventTitle){
-                await sendRejectionEmail(userEmail, eventTitle, eventID, reason);
-                
+            try {
+                const eventInfo = await connection.execute<EventRow>(
+                    'SELECT CREATOR_ID, TITLE, STATUS FROM EVENTS WHERE EVENT_ID = :eventID',
+                    [eventID]
+                );
+    
+                if (!eventInfo.rows || eventInfo.rows.length === 0) {
+                    return 404; // Evento não encontrado
+                }
+    
+                const creatorID = eventInfo.rows[0].CREATOR_ID;
+                const eventTitle = eventInfo.rows[0].TITLE;
+                const eventStatus = eventInfo.rows[0].STATUS;
+    
+                if (eventStatus !== 'Pending') {
+                    return 400; // Evento já foi avaliado
+                }
+    
+                if (evaluation === 'Approved') {
+                    await connection.execute(
+                        'UPDATE EVENTS SET STATUS = :status WHERE EVENT_ID = :eventID',
+                        [evaluation, eventID]
+                    );
+                    await connection.commit();
+                    return 200; // Aprovado com sucesso
+                }
+    
+                if (evaluation === 'Reproved' && creatorID && reason) {
+                    await connection.execute(
+                        'UPDATE EVENTS SET STATUS = :status WHERE EVENT_ID = :eventID',
+                        [evaluation, eventID]
+                    );
+                    await connection.commit();
+    
+                    const userEmail = await AccountsHandler.getUserEmail(creatorID);
+                    if (userEmail && eventTitle) {
+                        await sendRejectionEmail(userEmail, eventTitle, eventID, reason);
+                    }
+                    return 200; // Reprovado com sucesso
+                }
+    
+                return 400; // Parâmetros inválidos
+            } finally {
+                await connection.close();
             }
-            return 200;
+        } catch (error) {
+            console.error('Erro ao avaliar evento:', error);
+            return 500; // Erro interno
         }
-
-        return 400;
     }
-
+    
     export const evaluateNewEventHandler: RequestHandler = async(req: Request, res: Response) =>{
         const pAdminToken = req.get('adminToken');
         const eEventID = Number(req.get('eventID'));
@@ -425,38 +437,42 @@ export namespace EventsHandler{
         }
     }
 
-    async function searchEvent(keyword: string) : Promise<EventRow[] | undefined>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    async function searchEvent(keyword: string): Promise<EventRow[] | undefined> {
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
     
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const currDate: Date = new Date();
-        const searchLine:string = `%${keyword.toLowerCase()}%`;
-
-        const searchResults = await connection.execute<EventRow>(
-            `SELECT * FROM EVENTS WHERE END_DATE > :currdate AND STATUS = 'Approved' AND (LOWER(TITLE) LIKE :searchline
-            OR LOWER(DESCRIPTION) LIKE :searchline) 
-            ORDER BY END_DATE DESC`,
-            {
-                currdate: currDate,
-                searchline: searchLine
+            try {
+                const currDate: Date = new Date();
+                const searchLine: string = `%${keyword.toLowerCase()}%`;
+    
+                const searchResults = await connection.execute<EventRow>(
+                    `SELECT * FROM EVENTS WHERE END_DATE > :currdate AND STATUS = 'Approved' 
+                     AND (LOWER(TITLE) LIKE :searchline OR LOWER(DESCRIPTION) LIKE :searchline)
+                     ORDER BY END_DATE DESC`,
+                    {
+                        currdate: currDate,
+                        searchline: searchLine
+                    }
+                );
+    
+                console.dir(searchResults); // Depuração
+    
+                if (searchResults.rows && searchResults.rows.length > 0) {
+                    return searchResults.rows;
+                }
+    
+                return undefined;
+            } finally {
+                await connection.close();
             }
-        );
-
-        connection.close();
-
-        console.dir(searchResults); //Depurando
-
-        if(searchResults.rows && searchResults.rows.length > 0){
-            return searchResults.rows;
+        } catch (error) {
+            console.error('Erro ao buscar evento:', error);
+            return undefined;
         }
-
-        return undefined;
     }
+    
 
     export const searchEventHandler: RequestHandler = async(req: Request, res: Response) =>{
         const sKeyword = req.get('keyword');
