@@ -34,7 +34,7 @@ route.put('/withdrawFunds', TransactionsHandler.withdrawFundsHandler);
 
 route.put('/betOnEvent', TransactionsHandler.betOnEventHandler);
 
-route.put('/finishEvent', );
+route.put('/finishEvent', TransactionsHandler.finishEventHandler);
 
 route.get('/searchEvent', EventsHandler.searchEventHandler);
 

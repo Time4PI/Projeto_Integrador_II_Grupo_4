@@ -513,4 +513,114 @@ export namespace TransactionsHandler{
 
     }
 
+    async function finishEvent(admToken: string, eventID: number, verdict: string):Promise<number>{
+        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+        const connection = await OracleDB.getConnection({
+            user: process.env.ORACLE_USER,
+            password: process.env.ORACLE_PASSWORD,
+            connectString: process.env.ORACLE_CONN_STR
+        });
+
+        if(verdict != 'sim' && verdict != 'não'){
+            connection.close();
+            return 400;
+        }
+
+        const userRole = await AccountsHandler.getUserRole(admToken);
+        if (userRole !== "admin") {
+            connection.close();
+            return 403;
+        }
+
+        const eventResult = await connection.execute(
+            `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`,
+            [eventID]
+        );
+
+        if (!eventResult.rows || eventResult.rows.length === 0) {
+            await connection.close();
+            return 404;
+        }
+
+        await connection.execute(
+            `UPDATE EVENTS 
+             SET STATUS = 'Closed', RIGHT_RESPONSE = :verdict 
+             WHERE EVENT_ID = :eventID`,
+            [verdict, eventID]
+        );
+        
+
+        const totalBets = await connection.execute<Bet>(
+            `SELECT VALUE FROM BETS 
+             WHERE EVENT_ID = :eventID`,
+            [eventID]
+        );
+
+        const winningBetsResult = await connection.execute<Bet>(
+            `SELECT ACCOUNT_ID, VALUE FROM BETS 
+             WHERE EVENT_ID = :eventID AND BET_OPTION = :verdict`,
+            [eventID, verdict]
+        );
+
+        if(!winningBetsResult.rows?.[0]?.ACCOUNT_ID || !totalBets.rows?.[0]?.VALUE){
+            connection.close();
+            return 0;
+        }
+
+        let totalBetValue = 0;
+        for(var i = 0; i < totalBets.rows.length; i++){
+            totalBetValue += totalBets.rows[i].VALUE;
+        }
+
+        let totalWinningBetValue = 0;
+        for(var i = 0; i < winningBetsResult.rows.length; i++){
+            totalWinningBetValue += winningBetsResult.rows[i].VALUE;
+        }
+        
+        for(var i = 0; i < winningBetsResult.rows.length; i++){
+            const winningAmount = (winningBetsResult.rows[i].VALUE / totalWinningBetValue) * totalBetValue;
+
+            await connection.execute(
+                `UPDATE WALLET 
+                 SET BALLANCE = BALLANCE + :winningAmount 
+                 WHERE ACCOUNT_ID = :accountID`,
+                [winningAmount, winningBetsResult.rows[i].ACCOUNT_ID]
+            );
+        }
+
+        await connection.commit(); // Confirma todas as operações de atualização
+        await connection.close();
+
+        return 0;
+    }
+
+    export const finishEventHandler: RequestHandler = async(req: Request, res: Response) =>{
+        const tAdmToken = req.get("admToken");
+        const tEventID = Number(req.get("eventID"));
+        const tVerdict = req.get("verdict"); // ocorreu(sim) não ocorreu(não)
+
+        if (tAdmToken && tEventID && tVerdict){
+            const finishEventResult = await finishEvent(tAdmToken, tEventID, tVerdict);
+
+            if(finishEventResult === 0){
+                res.statusCode = 200;
+                res.send("Evento finalizado com sucesso. Os fundos foram distribuídos.");
+            }else if(finishEventResult === 403){
+                res.statusCode = 403;
+                res.send("Sem permissão para finalizar o evento.");
+            }else if(finishEventResult === 404){
+                res.statusCode = 404;
+                res.send("Evento não encontrado.");
+            }else{
+                res.statusCode = 400;
+                res.send("Parâmetros inválidos.");
+            }
+
+
+        }else {
+            res.statusCode = 400;
+            res.send("Parâmetros inválidos ou faltantes.");
+        }
+    }
+
 }
