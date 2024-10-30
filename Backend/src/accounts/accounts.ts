@@ -17,87 +17,140 @@ export namespace AccountsHandler {
         ID?: number | undefined;
         COMPLETE_NAME?: string | undefined;
         EMAIL?: string | undefined;
+        ACCOUNT_ROLE?: string | undefined;  //todos cadastrados são 'user', mas tem o 'admin'
     };
 
-    export async function getUserID(userToken: string) : Promise<number | undefined>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-
-        const results = await connection.execute<AccountRow>(
-            "SELECT TOKEN, ID FROM ACCOUNTS WHERE TOKEN = :token",
-            [userToken]
-        );
-
-        await connection.close(); 
-        console.dir("getUserID: ");
-        console.dir(results.rows);
-
-        if (results.rows && results.rows.length > 0){
-            const userID = results.rows[0].ID;
-            return userID;
+    async function getOracleConnection() {
+        try {
+            const connection = await OracleDB.getConnection({
+                user: process.env.ORACLE_USER,
+                password: process.env.ORACLE_PASSWORD,
+                connectString: process.env.ORACLE_CONN_STR,
+            });
+            return connection;
+        } catch (error) {
+            console.error('Erro ao conectar ao OracleDB:', error);
+            throw new Error('Falha ao conectar ao banco de dados.');
         }
+    }
+    
+    export async function getUserRole(userToken: string): Promise<string | undefined> {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
+            const userData = await connection.execute<AccountRow>(
+                'SELECT TOKEN, ACCOUNT_ROLE FROM ACCOUNTS WHERE TOKEN = :usertoken',
+                [userToken]
+            );
+
+            if (userData.rows && userData.rows.length > 0) {
+                return userData.rows[0].ACCOUNT_ROLE;
+            }
+        } catch (error) {
+            console.error('Erro ao buscar role do usuário:', error);
+        } finally {
+            if (connection) await connection.close();
+        }
+        return undefined;
+    }
+      
+    export async function getUserEmail(userID: number): Promise<string | undefined> {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+
+            const userData = await connection.execute<AccountRow>(
+                'SELECT TOKEN, EMAIL FROM ACCOUNTS WHERE ID = :userid',
+                [userID]
+            );
+
+            if (userData.rows && userData.rows.length > 0) {
+                return userData.rows[0].EMAIL;
+            }
+        } catch (error) {
+            console.error('Erro ao buscar email do usuário:', error);
+        } finally {
+            if (connection) await connection.close();
+        }
+        return undefined;
+    }
+
+    export async function getUserID(userToken: string): Promise<number | undefined> {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+
+            const results = await connection.execute<AccountRow>(
+                "SELECT TOKEN, ID FROM ACCOUNTS WHERE TOKEN = :token",
+                [userToken]
+            );
+
+            if (results.rows && results.rows.length > 0) {
+                return results.rows[0].ID;
+            }
+        } catch (error) {
+            console.error('Erro ao buscar ID do usuário:', error);
+        } finally {
+            if (connection) await connection.close();
+        }
         return undefined;
     }
 
     export async function saveNewAccount(ua: UserAccount): Promise<string | undefined> {
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
-    
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
-    
-        await connection.execute(
-            'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, dbms_random.string(\'x\',32))',
-            [ua.email, ua.password, ua.completeName]
-        );
-    
-        await connection.commit();  // Certifique-se de confirmar a transação
-        
-        const addedAccount = await connection.execute<AccountRow>(
-            'SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email',
-            [ua.email]
-        );
-        console.dir("Token Nova Conta: ");
-        console.dir(addedAccount.rows);  // Log para depuração
-    
-        await connection.close();
-    
-        if (addedAccount.rows && addedAccount.rows.length > 0) {
-            const accountToken: string = addedAccount.rows[0].TOKEN;
-            return accountToken; 
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+
+            await connection.execute(
+                'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, \'user\', dbms_random.string(\'x\',32))',
+                [ua.email, ua.password, ua.completeName]
+            );
+
+            const addedAccount = await connection.execute<AccountRow>(
+                'SELECT TOKEN, ID FROM ACCOUNTS WHERE EMAIL = :email',
+                [ua.email]
+            );
+
+            if (addedAccount.rows && addedAccount.rows.length > 0) {
+                await connection.execute(
+                    'INSERT INTO WALLET VALUES(:accountid, 0)',
+                    [addedAccount.rows[0].ID]
+                );
+                await connection.commit();
+
+                return addedAccount.rows[0].TOKEN;
+            }
+        } catch (error) {
+            console.error('Erro ao salvar nova conta:', error);
+        } finally {
+            if (connection) await connection.close();
         }
-    
         return undefined;
     }
 
-    export async function validateEmail(email: string) : Promise<boolean>{
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    export async function validateEmail(email: string): Promise<boolean> {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
+            const results = await connection.execute(
+                'SELECT EMAIL FROM ACCOUNTS WHERE EMAIL = :email',
+                [email]
+            );
 
-        const results = await connection.execute(
-            'SELECT EMAIL FROM ACCOUNTS WHERE EMAIL = :email',
-            [email]
-        );
-
-        await connection.close(); 
-        
-        if (!results.rows || results.rows.length === 0){
-            return true;
+            return !(results.rows && results.rows.length > 0);
+        } catch (error) {
+            console.error('Erro ao validar email:', error);
+            return false;
+        } finally {
+            if (connection) await connection.close();
         }
-        return false;
     }
     
     export const signUpHandler: RequestHandler = async(req: Request, res: Response) => {
@@ -136,32 +189,27 @@ export namespace AccountsHandler {
     }
 
     async function login(email: string, password: string): Promise<string | undefined> {
-        OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
-        let connection = await OracleDB.getConnection({
-            user: process.env.ORACLE_USER,
-            password: process.env.ORACLE_PASSWORD,
-            connectString: process.env.ORACLE_CONN_STR
-        });
+            const results = await connection.execute<AccountRow>(
+                "SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email AND PASSWORD = :password",
+                [email, password]
+            );
 
-        const results = await connection.execute<AccountRow>(
-            "SELECT TOKEN FROM ACCOUNTS WHERE EMAIL = :email AND PASSWORD = :password",
-            [email, password]
-        );
-
-        await connection.close(); 
-        console.dir("Token Login: ");
-        console.dir(results.rows);
-        if (results.rows && results.rows.length > 0) {
-            const logedAccountToken = results.rows[0].TOKEN; 
-            
-            return logedAccountToken;
+            if (results.rows && results.rows.length > 0) {
+                return results.rows[0].TOKEN;
+            }
+        } catch (error) {
+            console.error('Erro no login:', error);
+        } finally {
+            if (connection) await connection.close();
         }
-        
         return undefined;
     }
     
-
     export const loginHandler: RequestHandler = async (req: Request, res: Response) => {
         const pEmail = req.get('email');
         const pPassword = req.get('password');
