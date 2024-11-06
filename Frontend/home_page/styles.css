@@ -1,0 +1,123 @@
+/* Estilos Gerais */
+body {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: #1c1c1c;
+    color: #b0b0b0;
+    border-right: 1px solid #333;
+}
+
+.sidebar-logo img {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.sidebar-nav .nav-link {
+    color: #b0b0b0;
+    text-decoration: none;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: #333;
+    color: #4a90e2;
+}
+
+/* Conteúdo Principal */
+.main-content {
+    color: #ffffff;
+}
+
+/* Header */
+.header {
+    background-color: #333;
+    border-radius: 5px;
+}
+
+/* Botões Personalizados */
+.header-controls .login {
+    background-color: #ff8c00;
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.header-controls .signup {
+    background-color: #32cd32;
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.header-controls .login:hover {
+    background-color: #e67e00;
+}
+
+.header-controls .signup:hover {
+    background-color: #28a428;
+}
+
+/* Caixa de Pesquisa */
+.search-box input {
+    background-color: #333;
+    color: #ffffff;
+    border: none;
+}
+
+/* Cartões de Atividade */
+.activity-card {
+    background-color: #1c1c1c;
+    color: #ffffff;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+
+.button-compact {
+    max-width: 100px; /* Ajuste para o valor desejado */
+    width: 100%;      /* Garante que o botão respeite o max-width */
+}
+
+#signOut-link #account-link #events-link #deposit-link #withdraw-link #newEvent-link{
+    display: none;
+}
+
+.dropdown-menu {
+    right: 0;
+    left: auto;
+    background-color: #303030; /* Cor de fundo preta */
+    color: white; /* Cor do texto */
+}
+
+.dropdown-menu a {
+    color: white; /* Cor dos links dentro do menu */
+}
+
+.dropdown-menu a:hover {
+    background-color: #495057; /* Cor de hover */
+}
+
+.search-box input::placeholder {
+    color: #2b2b2b; /* Cor cinza do placeholder */
+}
+
+/* Personalizando o estilo do campo de input */
+.search-box input {
+    background-color: #f0f0f0; /* Cor de fundo inicial */
+    color: #222222; /* Cor do texto */
+}
+
+/* Impede que o fundo fique branco quando o campo é focado */
+.search-box input:focus {
+    background-color: #f0f0f0; /* Mantém o fundo cinza claro */
+    border-color: #007bff; /* Cor de borda quando focado */
+    outline: none; /* Remove o contorno padrão */
+}

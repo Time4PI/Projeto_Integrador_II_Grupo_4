@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Event - FutureBet</title>
+    <link rel="stylesheet" href="newEvent.css">
+    <script defer src="newEvent.js"></script>
+</head>
+<body>
+    <div class="event-container">
+        <div class="event-box">
+            <p class="home-link"><a href="../home_page/index.html"> ↩ Return to home page</a></p>
+            <h1>Create New Event</h1>
+            <form>
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" placeholder="Enter event title" required>
+
+                <label for="description">Description</label>
+                <textarea id="description" name="description" placeholder="Enter event description" rows="4" required></textarea>
+
+                <label for="category">Category</label>
+                <input type="text" id="category" name="category" placeholder="Enter event category" required>
+
+                <label for="eventDate">Event Date</label>
+                <input type="date" id="eventDate" name="eventDate" required>
+
+                <label for="startDate">Start Date</label>
+                <input type="date" id="startDate" name="startDate" required>
+
+                <label for="startHour">Start Hour</label>
+                <input type="time" id="startHour" name="startHour" required>
+
+                <label for="endDate">End Date</label>
+                <input type="date" id="endDate" name="endDate" required>
+
+                <label for="endHour">End Hour</label>
+                <input type="time" id="endHour" name="endHour" required>
+
+                <button type="button" class="event-button" onclick="submitEvent()">Create Event</button>
+                <div id="messageBox">
+                    <p id="message"></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

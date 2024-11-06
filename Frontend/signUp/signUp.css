@@ -1,0 +1,120 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1d1d1d;
+    color: #fff;
+}
+
+/* Contêiner da Tela de Cadastro */
+.signup-container {
+    margin-top: 10%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.signup-box {
+    background-color: #333;
+    padding: 40px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Título */
+.signup-box h1 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #32cd32; /* Usando a cor de destaque do botão "Criar Conta" */
+}
+
+/* Estilos do Formulário */
+.signup-box label {
+    display: block;
+    font-size: 14px;
+    color: #bbb;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+.signup-box input[type="text"],
+.signup-box input[type="email"],
+.signup-box input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #444;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    outline: none;
+}
+
+/* Botão de Cadastro */
+.signup-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #32cd32;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.signup-button:hover {
+    background-color: #1c7e1c;
+}
+
+/* Link de Login */
+.login-link {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.login-link a {
+    color: rgb(26, 118, 238); /* Cor similar ao botão "Login" */
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+.home-link {
+    text-align: left;
+    margin-top: 0;
+    padding-top: 0;
+    font-size: 12px;
+}
+
+.home-link a {
+    color: #ffffff; /* Cor similar ao botão "Login" */
+    text-decoration: none;
+}
+
+.home-link a:hover {
+    text-decoration: underline;
+}
+
+#messageBox{
+    background-color: darkred;
+    color: white;
+    margin-top: 10px;
+    border-radius: 5px;
+    padding: 5px;
+    display: none;
+}
