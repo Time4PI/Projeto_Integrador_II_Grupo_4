@@ -580,7 +580,7 @@ export namespace TransactionsHandler{
             );
     
             const winningBetsResult = await connection.execute<Bet>(
-                `SELECT ACCOUNT_ID, VALUE FROM BETS 
+                `SELECT ACCOUNT_ID, BET_ID, VALUE FROM BETS 
                  WHERE EVENT_ID = :eventID AND BET_OPTION = :verdict`,
                 [eventID, verdict]
             );
@@ -598,15 +598,26 @@ export namespace TransactionsHandler{
             for (var i = 0; i < winningBetsResult.rows.length; i++) {
                 totalWinningBetValue += winningBetsResult.rows[i].VALUE;
             }
+
+            let winningAmount;
+            let betID;
+            let accountID;
     
             for (var i = 0; i < winningBetsResult.rows.length; i++) {
-                const winningAmount = (winningBetsResult.rows[i].VALUE / totalWinningBetValue) * totalBetValue;
+                winningAmount = (winningBetsResult.rows[i].VALUE / totalWinningBetValue) * totalBetValue;
+                betID = winningBetsResult.rows[i].BET_ID;
+                accountID = winningBetsResult.rows[i].ACCOUNT_ID;
     
                 await connection.execute(
                     `UPDATE WALLET 
                      SET BALLANCE = BALLANCE + :winningAmount 
                      WHERE ACCOUNT_ID = :accountID`,
-                    [winningAmount, winningBetsResult.rows[i].ACCOUNT_ID]
+                    [winningAmount, accountID]
+                );
+
+                await connection.execute(
+                    'INSERT INTO BET_WINNINGS VALUES(:betid, :accountid, :value)',
+                    [betID, accountID, winningAmount]
                 );
             }
     
