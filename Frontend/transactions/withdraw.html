@@ -15,7 +15,7 @@
             <h1>Saque</h1>
             <form>
                 <label for="value">Valor</label>
-                <input type="number" id="value" name="value" placeholder="Coloque o valor para sacar" required>
+                <input type="number" id="value" name="value" placeholder="Coloque o valor para sacar" onfocus="hideErrorMessage()" required>
 
                 <label for="withdrawMethod">Método de Saque</label>
                 <select id="withdrawMethod" name="withdrawMethod" onchange="toggleFields()" required>
@@ -27,22 +27,22 @@
                 <!-- Campos para PIX -->
                 <div id="pixFields" class="hidden">
                     <label for="pixKey">Chave PIX</label>
-                    <input type="text" id="pixKey" name="pixKey" placeholder="Coloque a chave PIX">
+                    <input type="text" id="pixKey" name="pixKey" placeholder="Coloque a chave PIX" onfocus="hideErrorMessage()">
                 </div>
 
                 <!-- Campos para conta bancária -->
                 <div id="bankFields" class="hidden">
                     <label for="accountNumber">Número da Conta</label>
-                    <input type="text" id="accountNumber" name="accountNumber" placeholder="Coloque o número da conta">
+                    <input type="text" id="accountNumber" name="accountNumber" placeholder="Coloque o número da conta" onfocus="hideErrorMessage()">
 
                     <label for="bankNumber">Número do Banco</label>
-                    <input type="text" id="bankNumber" name="bankNumber" placeholder="Coloque o número do banco">
+                    <input type="text" id="bankNumber" name="bankNumber" placeholder="Coloque o número do banco" onfocus="hideErrorMessage()">
 
                     <label for="agencyNumber">Número da Agência</label>
-                    <input type="text" id="agencyNumber" name="agencyNumber" placeholder="Coloque o número da agência">
+                    <input type="text" id="agencyNumber" name="agencyNumber" placeholder="Coloque o número da agência" onfocus="hideErrorMessage()">
                 </div>
 
-                <button type="button" class="withdraw-button" onclick="submitWithdraw()">Sacar</button>
+                <button type="button" class="withdraw-button" onclick="performWithdraw()">Sacar</button>
                 <div id="messageBox">
                     <p id="message"></p>
                 </div>

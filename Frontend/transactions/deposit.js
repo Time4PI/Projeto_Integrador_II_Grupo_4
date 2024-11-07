@@ -45,6 +45,7 @@ function isValidDeposit(value, cardNumber, cardName, cvc, expirationDate) {
 }
 
 async function performDeposit() {
+    const token = localStorage.getItem('authToken');
     var value = document.getElementById("value").value;
     var cardNumber = document.getElementById("cardNumber").value;
     var cardName = document.getElementById("cardName").value;
@@ -52,20 +53,21 @@ async function performDeposit() {
     var expirationDate = document.getElementById("expirationDate").value;
 
     if (isValidDeposit(value, cardNumber, cardName, cvc, expirationDate)) {
+        if (expirationDate && /^(0[1-9]|1[0-2])\/\d{4}$/.test(expirationDate)) {
+            const [month, year] = expirationDate.split('/');
+            expirationDate = `${year}-${month}`;
+        }
         try {
-            // Simulando um envio de dados para o backend (sem um servidor real aqui)
-            const response = await fetch("http://localhost:3000/deposit", {
-                method: 'POST',
+            const response = await fetch("http://localhost:3000/addFunds", {
+                method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    value: value,
-                    cardNumber: cardNumber,
-                    cardName: cardName,
-                    cvc: cvc,
-                    expirationDate: expirationDate
-                })
+                    'accountToken': token,
+                    'value': value,
+                    'cardNumber': cardNumber,
+                    'cardName': cardName,
+                    'CVC': cvc,
+                    'expirationDate': expirationDate,
+                }
             });
 
             if (!response.ok) {
@@ -79,10 +81,9 @@ async function performDeposit() {
 
             showSucessMessage("Depósito realizado com sucesso!");
 
-            // Redireciona após 3 segundos
             setTimeout(() => {
-                window.location.href = "../home_page/index.html"; // Redirecionar para a página inicial
-            }, 3000);
+                window.location.href = "../home_page/index.html";
+            }, 2000);
 
         } catch (error) {
             console.error('Erro ao realizar depósito:', error);

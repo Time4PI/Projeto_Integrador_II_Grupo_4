@@ -227,4 +227,57 @@ export namespace AccountsHandler {
             res.status(400).send('Requisição inválida - Parâmetros faltando');
         }
     };
+
+    export const getUserInfoHandler: RequestHandler = async (req: Request, res: Response) => {
+        const userToken = req.get('token');
+    
+        if (userToken) {
+            const userInfo = await getUserInfo(userToken);
+    
+            if (userInfo) {
+                res.status(200).json({
+                    name: userInfo.COMPLETE_NAME,
+                    email: userInfo.EMAIL,
+                    balance: userInfo.BALLANCE,
+                });
+            } else {
+                res.status(404).send('Usuário não encontrado');
+            }
+        } else {
+            res.status(400).send('Token não fornecido');
+        }
+    };
+    
+    async function getUserInfo(token: string): Promise<{ COMPLETE_NAME: string; EMAIL: string; BALLANCE: number } | undefined> {
+        let connection;
+        try {
+            connection = await getOracleConnection();
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+    
+            // Executa a query para obter o nome, email e saldo do usuário com base no token
+            const result = await connection.execute<{ COMPLETE_NAME: string; EMAIL: string; BALLANCE: number }>(
+                `SELECT A.COMPLETE_NAME, A.EMAIL, W.BALLANCE 
+                 FROM ACCOUNTS A 
+                 JOIN WALLET W ON A.ID = W.ACCOUNT_ID 
+                 WHERE A.TOKEN = :token`,
+                [token]
+            );
+    
+            // Verifica se há linhas retornadas e retorna o objeto ou undefined
+            if (result.rows && result.rows.length > 0) {
+                const userInfo = result.rows[0]; // Pega a primeira linha de resultado
+                return {
+                    COMPLETE_NAME: userInfo.COMPLETE_NAME,
+                    EMAIL: userInfo.EMAIL,
+                    BALLANCE: userInfo.BALLANCE,
+                };
+            }
+        } catch (error) {
+            console.error('Erro ao buscar informações do usuário:', error);
+        } finally {
+            if (connection) await connection.close();
+        }
+        return undefined;
+    }
+    
 }

@@ -30,6 +30,7 @@ route.put('/addFunds', TransactionsHandler.addFundsHandler);
 route.put('/withdrawFunds', TransactionsHandler.withdrawFundsHandler);
 route.put('/betOnEvent', TransactionsHandler.betOnEventHandler);
 route.put('/finishEvent', TransactionsHandler.finishEventHandler);
+route.get('/getUserInfo', AccountsHandler.getUserInfoHandler);
 
 app.use(route);
 

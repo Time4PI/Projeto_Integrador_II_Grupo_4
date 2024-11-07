@@ -16,41 +16,88 @@ function toggleFields() {
 }
 
 function showErrorMessage(message) {
-    const mb = document.getElementById("messageBox");
+    var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
     mb.style.display = "block";
+    mb.style.backgroundColor = "red";
 }
 
-function submitWithdraw() {
+function showSucessMessage(message) {
+    var mb = document.getElementById("messageBox");
+    document.getElementById("message").innerHTML = message;
+    mb.style.display = "block";
+    mb.style.backgroundColor = "green";
+}
+
+function hideErrorMessage() {
+    var mb = document.getElementById("messageBox");
+    mb.style.display = "none";
+}
+
+
+async function performWithdraw() {
+    const token = localStorage.getItem('authToken');
     const withdrawMethod = document.getElementById("withdrawMethod").value;
     const value = document.getElementById("value").value.trim();
 
     if (!value) {
-        showErrorMessage("Please enter a value.");
+        showErrorMessage("Digite um valor válido.");
         return;
     }
+
+    let headers = {
+        'accountToken': token,
+        'value': value
+    };
 
     if (withdrawMethod === "pix") {
         const pixKey = document.getElementById("pixKey").value.trim();
         if (!pixKey) {
-            showErrorMessage("Please enter a PIX key.");
+            showErrorMessage("Digite uma chave PIX válida.");
             return;
         }
+        headers['pixKey'] = pixKey;
     } else if (withdrawMethod === "bankAccount") {
         const accountNumber = document.getElementById("accountNumber").value.trim();
         const bankNumber = document.getElementById("bankNumber").value.trim();
         const agencyNumber = document.getElementById("agencyNumber").value.trim();
 
         if (!accountNumber || !bankNumber || !agencyNumber) {
-            showErrorMessage("Please fill in all bank account details.");
+            showErrorMessage("Digite os dados bancários.");
             return;
         }
+
+        headers['bankAccountNumber'] = accountNumber;
+        headers['BankNumber'] = bankNumber;
+        headers['agencyNumber'] = agencyNumber;
     } else {
-        showErrorMessage("Please select a withdrawal method.");
+        showErrorMessage("Escola um método de saque.");
         return;
     }
 
-    document.getElementById("messageBox").style.display = "none"; // Hide message on successful submission
-    alert("Withdrawal submitted successfully!");
-    // Add any further submission logic here
+    try {
+        const response = await fetch("http://localhost:3000/withdrawFunds", {
+            method: 'PUT',
+            headers: headers
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            showErrorMessage(errorText);
+            throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
+        }
+
+        const resultText = await response.text();
+        console.info(`Resposta: ${resultText}`);
+        showSucessMessage("Saque realizado com sucesso!")
+
+        setTimeout(() => {
+            window.location.href = "../home_page/index.html";
+        }, 2000);
+        
+        // Redirect or other success actions here
+    } catch (error) {
+        console.error('Erro ao realizar saque:', error);
+    }
 }
+

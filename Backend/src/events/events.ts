@@ -208,30 +208,31 @@ export namespace EventsHandler{
         }
     }
 
-    export const getEventsHandler: RequestHandler = async (req: Request,  res: Response) =>{
-        const eStatus = req.get('status'); //Valores (Pending, Reproved, Approved, Closed, Deleted) or Any
-        const eDate = req.get('date');    //Respostas esperadas: Future, Past or Any
-
-        if (eStatus && eDate){
-            const fetchedEvents: EventRow[] | undefined = await getFilteredEvents(eStatus, eDate);
-            if (fetchedEvents){
-                res.statusCode = 200;
-                const response = {
-                    mensage: 'Eventos Filtrados: ',
-                    events: fetchedEvents
-                };
-                
-                res.json(response);
+    export const getEventsHandler: RequestHandler = async (req: Request, res: Response) => {
+        try {
+            const eStatus = req.query.status as string;  //Valores (Pending, Reproved, Approved, Closed, Deleted) or Any
+            const eDate = req.query.date as string;      //Respostas esperadas: Future, Past or Any
     
+            if (eStatus && eDate) {
+                const fetchedEvents: EventRow[] | undefined = await getFilteredEvents(eStatus, eDate);
+                if (fetchedEvents) {
+                    res.status(200).json({
+                        mensage: 'Eventos Filtrados: ',
+                        events: fetchedEvents
+                    });
+                } else {
+                    res.status(204).send('Nenhum evento encontrado');
+                }
             } else {
-                res.statusCode = 204;
-                res.send('Nenhum evento encontrado')
+                res.status(400).send("Parâmetros inválidos ou faltantes. Certifique-se de enviar 'status' e 'date'.");
             }
-        } else {
-            res.statusCode = 400;
-            res.send("Parâmetros inválidos ou faltantes."); 
+        } catch (error) {
+            console.error('Erro ao buscar eventos:', error);
+            res.status(500).send('Erro interno no servidor ao buscar eventos');
         }
-    }
+    };
+    
+    
 
 
     async function deleteEvent(userToken: string, eventID: number): Promise<number> {

@@ -201,7 +201,6 @@ export namespace TransactionsHandler{
             }
 
             const result = await addFunds(tAccountToken, tValue, creditCard);
-
             if (result === 0){
                 res.statusCode = 200;
                 res.send("Fundos adicionados com sucesso!");

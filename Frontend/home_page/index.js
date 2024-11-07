@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const depositLink = document.getElementById('deposit-link');
   const withdrawLink = document.getElementById('withdraw-link');
   const newEventLink = document.getElementById('newEvent-link');
-  
+
   // Se o token existir, remova ou oculte o botão de login
   if (token) {
     // Mostrar todos os botões
@@ -40,99 +40,115 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 });
 
-document.addEventListener("DOMContentLoaded", loadEvents);
-
 async function loadEvents() {
-    // Pega os valores do formulário de filtros
-    const status = document.getElementById("statusSelect").value;
-    const date = document.getElementById("dateInput").value;
+  const status = 'Any';
+  const date = 'Any';
 
-    try {
-        const headers = new Headers();
-        headers.append("status", status);
-        headers.append("date", date);
+  try {
+      const response = await fetch(`http://localhost:3000/getEvents?status=${status}&date=${date}`, {
+          method: 'GET',
+      });
 
-        const response = await fetch("http://localhost:3000/getEvents", {
-            method: "GET",
-            headers: headers,
-        });
+      if (!response.ok) throw new Error("Falha ao carregar eventos");
 
-        if (!response.ok) throw new Error("Falha ao carregar eventos");
+      const data = await response.json();
+      console.log(data);  // Exibe os dados para depuração
 
-        const events = await response.json();
-        displayEvents(events);
-    } catch (error) {
-        console.error("Erro ao carregar eventos:", error);
-    }
+      if (data.events && data.events.length > 0) {
+          displayEvents(data.events);  // Exibe os eventos na interface
+      } else {
+          console.log('Nenhum evento encontrado.');
+      }
+  } catch (error) {
+      console.error("Erro ao carregar eventos:", error);
+  }
 }
 
-async function searchEvents() {
-    const searchInput = document.getElementById("searchInput").value.trim();
-    if (!searchInput) return;
+function displayEvents(events) {
+  // Seleciona o elemento pai onde os containers de eventos serão adicionados
+  const mainContainer = document.getElementById("main-events-container");
 
-    try {
-        const headers = new Headers();
-        headers.append("query", searchInput);
+  // Limpa o container antes de adicionar novos eventos
+  mainContainer.innerHTML = "";
 
-        const response = await fetch("http://localhost:3000/searchEvent", {
-            method: "GET",
-            headers: headers,
-        });
-
-        if (!response.ok) throw new Error("Falha ao buscar eventos");
-
-        const events = await response.json();
-        displayEvents(events);
-    } catch (error) {
-        console.error("Erro ao buscar eventos:", error);
-    }
-}
-
-function displayEvents(eventsData) {
-  const eventsContainer = document.getElementById("eventsContainer");
-  eventsContainer.innerHTML = ""; // Limpa o contêiner antes de adicionar novos eventos
-
-  const { events } = eventsData;
-
-  if (events.length === 0) {
-      eventsContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
+  // Verifica se há eventos para exibir
+  if (!events || events.length === 0) {
+      mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
       return;
   }
 
+  // Cria um novo container para cada evento e insere no mainContainer
   events.forEach(event => {
-      const eventItem = document.createElement("div");
-      eventItem.classList.add("event-item", `status-${event.STATUS.toLowerCase()}`); // Adiciona uma classe CSS com base no status
+      // Cria um novo elemento que representa o container de um evento
+      const eventContainer = document.createElement("div");
+      eventContainer.classList.add("events-container");
 
-      // Formata as datas para exibição (opcional)
-      const eventDate = new Date(event.EVENT_DATE).toLocaleDateString("pt-BR");
-      const startDate = new Date(event.START_DATE).toLocaleDateString("pt-BR");
-      const endDate = new Date(event.END_DATE).toLocaleDateString("pt-BR");
-
-      eventItem.innerHTML = `
-          <h3 class="event-title">${event.TITLE}</h3>
-          <p class="event-description">${event.DESCRIPTION}</p>
-          <p class="event-category">Categoria: ${event.CATEGORY}</p>
-          <p class="event-status">Status: ${formatStatus(event.STATUS)}</p>
-          <p class="event-date">Data do Evento: ${eventDate}</p>
-          <p class="event-start-date">Data de Início: ${startDate}</p>
-          <p class="event-end-date">Data de Término: ${endDate}</p>
+      // Preenche o container com o conteúdo do evento
+      eventContainer.innerHTML = `
+            <div class="card-body text-center activity-card card w-100 mb-3">
+              <h3>${event.TITLE}</h3>
+              <p>${event.DESCRIPTION}</p>
+              <p>Status: ${event.STATUS}</p>
+              <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+              <p>Data de Início: ${new Date(event.START_DATE).toLocaleDateString()}</p>
+              <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
+            </div>
       `;
 
-      eventsContainer.appendChild(eventItem);
+      // Adiciona o container do evento ao mainContainer
+      mainContainer.appendChild(eventContainer);
   });
 }
 
-// Função auxiliar para formatar o status com base no texto desejado
-function formatStatus(status) {
-  switch (status) {
-      case "Pending": return "Pendente";
-      case "Deleted": return "Deletado";
-      case "Closed": return "Encerrado";
-      case "Reproved": return "Reprovado";
-      case "Approved": return "Aprovado";
-      default: return status;
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Verifica se o token de autenticação existe no localStorage
+  const authToken = localStorage.getItem('authToken');
+
+  if (authToken) {
+      // Se o usuário está logado (authToken existe), chama a função loadEvents
+      loadEvents();
+      loadUserInfo()
+  } 
+});
+
+
+async function loadUserInfo() {
+  // Obtém o token de autenticação do localStorage
+  const token = localStorage.getItem('authToken');
+  console.log(localStorage.getItem('authToken'));
+
+  if (!token) {
+      console.error('Token de autenticação não encontrado.');
+      return;
+  }
+
+  try {
+      // Faz a chamada à API para obter as informações do usuário
+      const response = await fetch("http://localhost:3000/getUserInfo", {
+          method: 'GET',
+          headers: {
+              'token': token, // Token sem prefixo "Bearer"
+          },
+      });
+
+      if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Falha ao carregar informações do usuário: ${errorText}`);
+      }
+
+      // Obtém os dados da resposta e os insere nos elementos HTML
+      const data = await response.json();
+      console.log(data);
+      document.getElementById("userName").textContent = data.name || "N/A";
+      document.getElementById("userEmail").textContent = data.email || "N/A";
+      document.getElementById("userBalance").textContent = `R$ ${data.balance.toFixed(2)}` || "N/A";
+  } catch (error) {
+      console.error("Erro ao carregar informações do usuário:", error);
   }
 }
+
+
 
 
 
