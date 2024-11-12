@@ -122,7 +122,9 @@ export namespace EventsHandler{
 
         if(eCreatorToken && eTitle && eDescription && eCategory && eEventDate && eStartDate && eStartHour && eEndDate && eEndHour){
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
-            if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID){
+            const userRole = await AccountsHandler.getUserRole(eCreatorToken);
+
+            if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID && userRole !== "admin"){
                 let eStatus: string = "Pending";
                 let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
                 let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
@@ -151,6 +153,9 @@ export namespace EventsHandler{
                     res.statusCode = 500; 
                     res.send(`Falha ao adicionar o evento`);
                 }
+            }else if(userRole === "admin"){
+                res.statusCode = 403;
+                res.send("Admin não tem permissão para criar eventos.");
             }else {
                 res.statusCode = 400;
                 res.send("Dados inválidos na requisição.");

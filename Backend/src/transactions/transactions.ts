@@ -508,9 +508,11 @@ export namespace TransactionsHandler{
         
         if (tAccountToken && tEventID && tValue && tBetOption &&(tValue>0)){
             const userID = await AccountsHandler.getUserID(tAccountToken);
+            const userRole = await AccountsHandler.getUserRole(tAccountToken);
+
             const currdate = new Date();
 
-            if (userID){
+            if (userID && userRole !== "admin"){
                 const newBet: Bet = {
                     ACCOUNT_ID: userID,
                     EVENT_ID: tEventID,
@@ -530,6 +532,9 @@ export namespace TransactionsHandler{
                     res.send("Saldo insuficiente.");
                 }
 
+            }else if(userRole === "admin"){
+                res.statusCode = 403;
+                res.send("Admin não tem permissão para apostar.");
             }else {
                 res.statusCode = 400;
                 res.send("Parâmetros inválidos ou faltantes.");
