@@ -10,6 +10,7 @@ export namespace AccountsHandler {
         completeName: string;
         email: string;
         password: string | undefined;
+        birthDate: Date | undefined;
     };
 
     export type AccountRow = {
@@ -18,6 +19,7 @@ export namespace AccountsHandler {
         COMPLETE_NAME?: string | undefined;
         EMAIL?: string | undefined;
         ACCOUNT_ROLE?: string | undefined;  //todos cadastrados são 'user', mas tem o 'admin'
+        BIRTH_DATE?: Date | undefined;
     };
 
     async function getOracleConnection() {
@@ -107,8 +109,8 @@ export namespace AccountsHandler {
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
             await connection.execute(
-                'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, \'user\', dbms_random.string(\'x\',32))',
-                [ua.email, ua.password, ua.completeName]
+                'INSERT INTO ACCOUNTS VALUES(SEQ_ACCOUNTS.NEXTVAL, :email, :password, :completename, \'user\', dbms_random.string(\'x\',32), :birthdate)',
+                [ua.email, ua.password, ua.completeName, ua.birthDate]
             );
 
             const addedAccount = await connection.execute<AccountRow>(
@@ -152,22 +154,41 @@ export namespace AccountsHandler {
             if (connection) await connection.close();
         }
     }
+
+    function validateUserAge(birthDate: Date) : boolean{
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const hasHadBirthdayThisYear = 
+            today.getMonth() > birthDate.getMonth() ||
+            (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+    
+            if(hasHadBirthdayThisYear){
+                return age >= 18;
+            }
+            return age-1 >=18;
+    }
     
     export const signUpHandler: RequestHandler = async(req: Request, res: Response) => {
         
         const pName = req.get('name');
         const pEmail = req.get('email');
         const pPassword = req.get('password');
+        const pBirthDate = req.get('birthDate'); //2022-01-26
         
-        if(pName && pEmail && pPassword){
+        if(pName && pEmail && pPassword && pBirthDate){
+            const birthDate = new Date(`${pBirthDate}T00:00:00`);
+
+            const validAge = await validateUserAge(birthDate);
+            const validEmail = await validateEmail(pEmail);
             
-            if (await validateEmail(pEmail)){
+            if (validEmail && validAge){
                 const newAccount: UserAccount = {
                     id: undefined,
                     completeName: pName,
                     email: pEmail, 
                     password: pPassword,
-                }
+                    birthDate: birthDate
+                };
                 const newAccountToken = await saveNewAccount(newAccount);
                 console.dir(newAccountToken)
                 if (!newAccountToken){
@@ -178,7 +199,10 @@ export namespace AccountsHandler {
                     res.statusCode = 200; 
                     res.send(`Nova conta adicionada. Token: ${newAccountToken}`);
                 }
-            } else{
+            }else if(!validAge){
+                res.statusCode = 403;
+                res.send("Usuário não pode ser menor de 18 anos.");
+            }else{
                 res.statusCode = 400;
                 res.send("Email Invalido.");
             }
