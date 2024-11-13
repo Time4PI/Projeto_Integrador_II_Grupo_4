@@ -77,6 +77,7 @@ export namespace EventsHandler{
     export async function saveNewEvent(newEvent: Event): Promise<Number | undefined> {
         let connection;
         try {
+
             if (await validateCategory(newEvent.category)) {
                 connection = await getOracleConnection();
                 await connection.execute(
@@ -123,12 +124,16 @@ export namespace EventsHandler{
         if(eCreatorToken && eTitle && eDescription && eCategory && eEventDate && eStartDate && eStartHour && eEndDate && eEndHour){
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
             const userRole = await AccountsHandler.getUserRole(eCreatorToken);
+            const currdate = new Date();
 
-            if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID && userRole !== "admin"){
+            let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
+            let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
+            let eFullEventDate = new Date(`${eEventDate}T00:00:00`);
+
+            if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID && userRole !== "admin"
+                && eFullStartDate > currdate && eFullEndDate > eFullStartDate && eFullEventDate > eFullEndDate
+            ){
                 let eStatus: string = "Pending";
-                let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
-                let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
-                let eFullEventDate = new Date(`${eEventDate}T00:00:00`);
 
                 console.dir(eFullEndDate);  //depuração
 
