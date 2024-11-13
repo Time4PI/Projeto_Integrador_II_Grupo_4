@@ -46,7 +46,7 @@
                             </li>
                         </ul>
                     </div>
-                    
+                    <a href="#" class="nav-link" id="historic-link">📖 Histórico</a>
                     <a href="../home_page/index.html" class="nav-link" id="events-link">🗓️ Eventos</a>
                     <a href="../transactions/deposit.html" class="nav-link" id="deposit-link">💸 Depositar</a>
                     <a href="../transactions/withdraw.html" class="nav-link" id="withdraw-link">💵 Sacar</a>
@@ -60,8 +60,28 @@
                 <!-- Header -->
                 <div class="header d-flex flex-column flex-md-row justify-content-between align-items-center p-3 rounded mb-4">
                     <div class="search-box w-100 w-md-75 mb-3 mb-md-0">
-                        <input type="text" class="form-control" placeholder="🔎 Busque eventos">
-                    </div>                                                     
+                        <input type="text" class="form-control" id="searchBar" placeholder="🔎 Busque eventos">
+                    </div>                                                    
+                </div>
+
+                <div class="categories d-flex justify-content-center flex-wrap mt-3">
+                    <button class="btn btn-secondary  m-2" data-filter="vencer">Eventos próximos de vencer</button>
+                    <button class="btn btn-secondary  m-2" data-filter="mais-apostados">Eventos mais apostados</button>
+                    <button class="btn btn-secondary m-2" data-category="olimpiada">
+                        Olimpíadas
+                    </button>
+                    <button class="btn btn-secondary m-2" data-category="catastrofes">
+                        Catástrofes
+                    </button>
+                    <button class="btn btn-secondary m-2" data-category="eleicoes">
+                        Eleições
+                    </button>
+                    <button class="btn btn-secondary m-2" data-category="bolsa-valores">
+                        Bolsa de Valores
+                    </button>
+                    <button class="btn btn-secondary m-2" data-category="bolsa-valores">
+                        Esportes
+                    </button>
                 </div>
 
                 <!-- Activity List -->

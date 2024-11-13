@@ -41,8 +41,8 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 async function loadEvents() {
-  const status = 'Any';
-  const date = 'Any';
+  const status = 'Approved';
+  const date = 'Future';
 
   try {
       const response = await fetch(`http://localhost:3000/getEvents?status=${status}&date=${date}`, {
@@ -63,6 +63,45 @@ async function loadEvents() {
       console.error("Erro ao carregar eventos:", error);
   }
 }
+
+async function loadEventsSearch(word) {
+    const keyword = word;
+  
+    try {
+        const response = await fetch(`http://localhost:3000/searchEvent`, {
+            method: 'GET',
+            headers: {
+                'keyword': keyword,
+            }
+        });
+  
+        if (!response.ok) throw new Error("Falha ao carregar eventos");
+  
+        const data = await response.json();
+        console.log(data);  // Exibe os dados para depuração
+  
+        if (data.events && data.events.length > 0) {
+            displayEvents(data.events);  // Exibe os eventos na interface
+        } else {
+            console.log('Nenhum evento encontrado.');
+        }
+    } catch (error) {
+        console.error("Erro ao carregar eventos:", error);
+    }
+  }
+
+// Captura o campo de entrada
+const searchBar = document.getElementById("searchBar");
+
+// Adiciona um listener ao campo de entrada para capturar o texto digitado em tempo real
+searchBar.addEventListener("input", () => {
+    const searchText = searchBar.value;
+    loadEventsSearch(searchText);
+    if(searchBar.value == 0){
+        loadEvents();
+    }
+    // Aqui você pode chamar uma função para fazer a busca com o texto capturado
+});  
 
 const betModal = document.getElementById("betModal");
 const closeButton = document.querySelector(".close-button");
@@ -191,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (authToken) {
       // Se o usuário está logado (authToken existe), chama a função loadEvents
       loadEvents();
-      loadUserInfo()
+      loadUserInfo();
   } 
 });
 

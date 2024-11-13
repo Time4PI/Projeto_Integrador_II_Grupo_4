@@ -183,3 +183,22 @@ body {
     padding: 5px;
     display: none;
 }
+
+/* Centralizar o conteúdo dentro do container */
+.header, .filters, .categories {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Estilo customizado para os botões */
+.filters button, .categories button {
+    padding: 10px 15px;
+    margin-bottom: 5px;
+}
+
+/* Estilo ao passar o mouse sobre os botões */
+.filters button:hover, .categories button:hover {
+    background-color: #35383d;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+    color: white;
+}
