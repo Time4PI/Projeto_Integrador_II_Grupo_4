@@ -41,8 +41,8 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 async function loadEvents() {
-  const status = 'Any';
-  const date = 'Any';
+  const status = 'Approved';
+  const date = 'Future';
 
   try {
       const response = await fetch(`http://localhost:3000/getEvents?status=${status}&date=${date}`, {
@@ -64,6 +64,110 @@ async function loadEvents() {
   }
 }
 
+async function loadEventsSearch(word) {
+    const keyword = word;
+  
+    try {
+        const response = await fetch(`http://localhost:3000/searchEvent`, {
+            method: 'GET',
+            headers: {
+                'keyword': keyword,
+            }
+        });
+  
+        if (!response.ok) throw new Error("Falha ao carregar eventos");
+  
+        const data = await response.json();
+        console.log(data);  // Exibe os dados para depuração
+  
+        if (data.events && data.events.length > 0) {
+            displayEvents(data.events);  // Exibe os eventos na interface
+        } else {
+            console.log('Nenhum evento encontrado.');
+        }
+    } catch (error) {
+        console.error("Erro ao carregar eventos:", error);
+    }
+  }
+
+// Captura o campo de entrada
+const searchBar = document.getElementById("searchBar");
+
+// Adiciona um listener ao campo de entrada para capturar o texto digitado em tempo real
+searchBar.addEventListener("input", () => {
+    const searchText = searchBar.value;
+    loadEventsSearch(searchText);
+    if(searchBar.value == 0){
+        loadEvents();
+    }
+    // Aqui você pode chamar uma função para fazer a busca com o texto capturado
+});  
+
+const betModal = document.getElementById("betModal");
+const closeButton = document.querySelector(".close-button");
+const confirmBetButton = document.getElementById("confirmBetButton");
+const yesButton = document.getElementById("yesButton");
+const noButton = document.getElementById("noButton");
+const betAmountInput = document.getElementById("betAmount");
+
+let selectedOption = null; // Variável para armazenar a escolha ("Sim" ou "Não")
+let betButtonId = null;
+
+// Função para abrir a modal
+function openBetModal(buttonId) {
+    betModal.style.display = "flex";
+    betButtonId = buttonId;
+}
+
+// Função para fechar a modal
+function closeBetModal() {
+    noButton.classList.remove("btn-primary");
+    noButton.classList.add("btn-secondary");
+    yesButton.classList.remove("btn-primary");
+    yesButton.classList.add("btn-secondary");
+    yesButton.classList.remove("selected");
+    noButton.classList.remove("selected");
+    betModal.style.display = "none";
+    selectedOption = null; // Reseta a escolha ao fechar
+    betButtonId = null;
+    betAmountInput.value = ''; // Limpa o campo de valor
+}
+
+// Evento para fechar a modal ao clicar no botão de fechar
+closeButton.addEventListener("click", closeBetModal);
+
+// Evento para fechar a modal ao clicar fora do conteúdo da modal
+window.addEventListener("click", (event) => {
+    if (event.target === betModal) {
+        closeBetModal();
+    }
+});
+
+// Eventos para os botões "Sim" e "Não"
+yesButton.addEventListener("click", () => {
+    selectedOption = "sim";
+
+    yesButton.classList.remove("btn-secondary");
+    yesButton.classList.add("btn-primary");
+    noButton.classList.remove("btn-primary");
+    noButton.classList.add("btn-secondary");
+
+    yesButton.classList.add("selected");
+    noButton.classList.remove("selected");
+});
+
+noButton.addEventListener("click", () => {
+    selectedOption = "não";
+
+    noButton.classList.remove("btn-secondary");
+    noButton.classList.add("btn-primary");
+    yesButton.classList.remove("btn-primary");
+    yesButton.classList.add("btn-secondary");
+
+    noButton.classList.add("selected");
+    yesButton.classList.remove("selected");
+});
+
 function displayEvents(events) {
   // Seleciona o elemento pai onde os containers de eventos serão adicionados
   const mainContainer = document.getElementById("main-events-container");
@@ -84,17 +188,35 @@ function displayEvents(events) {
       eventContainer.classList.add("events-container");
 
       // Preenche o container com o conteúdo do evento
-      eventContainer.innerHTML = `
-            <div class="card-body text-center activity-card card w-100 mb-3">
-              <h3>${event.TITLE}</h3>
-              <p>${event.DESCRIPTION}</p>
-              <p>Status: ${event.STATUS}</p>
-              <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-              <p>Data de Início: ${new Date(event.START_DATE).toLocaleDateString()}</p>
-              <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
-            </div>
-      `;
-
+      if(event.STATUS != "Approved"){
+        eventContainer.innerHTML = `
+                <div class="card-body text-center activity-card card w-100 mb-3">
+                <h3>${event.TITLE}</h3>
+                <p>${event.DESCRIPTION}</p>
+                <p>Status: ${event.STATUS}</p>
+                <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+                <p>Data de Início: ${new Date(event.START_DATE).toLocaleDateString()}</p>
+                <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
+                </div>
+        `;
+      } else {
+        eventContainer.innerHTML = `
+                <div class="card-body text-center activity-card card w-100 mb-3">
+                <h3>${event.TITLE}</h3>
+                <p>${event.DESCRIPTION}</p>
+                <p>Status: ${event.STATUS}</p>
+                <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+                <p>Data de Início: ${new Date(event.START_DATE).toLocaleDateString()}</p>
+                <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
+                
+                <div class="bet-container mt-3">
+                    <button class="btn btn-primary w-100"  onclick="openBetModal(this.id)" id="${event.EVENT_ID}">Apostar</button>
+                </div>
+                </div>
+        `;
+      }
+    
+    
       // Adiciona o container do evento ao mainContainer
       mainContainer.appendChild(eventContainer);
   });
@@ -108,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (authToken) {
       // Se o usuário está logado (authToken existe), chama a função loadEvents
       loadEvents();
-      loadUserInfo()
+      loadUserInfo();
   } 
 });
 
@@ -148,7 +270,97 @@ async function loadUserInfo() {
   }
 }
 
+function showErrorMessage(message) {
+    var mb = document.getElementById("messageBox");
+    document.getElementById("message").innerHTML = message;
+    mb.style.display = "block";
+    mb.style.backgroundColor = "red";
+}
 
+function showSucessMessage(message) {
+    var mb = document.getElementById("messageBox");
+    document.getElementById("message").innerHTML = message;
+    mb.style.display = "block";
+    mb.style.backgroundColor = "green";
+}
+
+function hideErrorMessage() {
+    var mb = document.getElementById("messageBox");
+    mb.style.display = "none";
+}
+
+function isValidBet(selectedOption, betAmount) {
+    let valid = false;
+
+    // Remove espaços extras
+    selectedOption = selectedOption;
+    betAmount = betAmount;
+
+    // Validação
+    if (selectedOption && betAmount) {
+        valid = true;
+    } else if (!selectedOption && !betAmount) {
+        // Caso nenhum campo tenha sido preenchido
+        showErrorMessage("Por favor, selecione 'Sim' ou 'Não' e insira um valor para a aposta.");
+    } else {
+        // Verifica qual campo está vazio
+        if (!selectedOption) {
+            showErrorMessage("Por favor, selecione 'Sim' ou 'Não' para a aposta.");
+        } else if (!betAmount) {
+            showErrorMessage("Por favor, insira um valor válido para a aposta.");
+        }
+    }
+
+    console.info("Opção Selecionada:", selectedOption);
+    console.info("Valor da Aposta:", betAmount);
+
+    return valid;
+}
+
+
+async function performBet() {
+    const token = localStorage.getItem('authToken');
+    var eventID = betButtonId;
+    var value = document.getElementById('betAmount').value;
+    var betOption = selectedOption;
+
+    console.log(token);
+    console.log(eventID);
+    console.log(value);
+    console.log(betOption);
+
+    if (isValidBet(betOption, value)) {
+        try {
+            const response = await fetch("http://localhost:3000/betOnEvent", {
+                method: 'PUT',
+                headers: {
+                    'accountToken': token,
+                    'eventID': eventID,
+                    'value': value,
+                    'betOption': betOption,
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text(); // Lê como texto
+                showErrorMessage(errorText);
+                throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
+            }
+
+            const resultText = await response.text(); // Lê a resposta como texto
+            console.info(`Resposta: ${resultText}`); // Aqui você pode obter a resposta do backend
+
+            // Exibe a mensagem de sucesso após o cadastro
+            showSucessMessage("Aposta realizada com sucesso!");
+
+            setTimeout(() => {
+                window.location.href = "../home_page/index.html";
+            }, 2000);
+        } catch (error) {
+            console.error('Erro ao realizar login:', error);
+        }
+    }
+}
 
 
 
