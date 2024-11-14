@@ -39,6 +39,12 @@ export namespace TransactionsHandler{
         KEY: string;
     };
 
+    type AccountStatement = {
+        TRANSACTION_DATE: Date;
+        TRANSACTION_TYPE: string; 
+        AMOUNT: number;
+    };
+
     async function getOracleConnection() {
         try {
             const connection = await OracleDB.getConnection({
@@ -551,6 +557,7 @@ export namespace TransactionsHandler{
         try {
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
             connection = await getOracleConnection();
+            const currdate = new Date();
     
             if (verdict !== 'sim' && verdict !== 'não') {
                 return 400;
@@ -562,7 +569,7 @@ export namespace TransactionsHandler{
             }
     
             const eventResult = await connection.execute(
-                `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`,
+                `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`, //AND EVENT_DATE <= :currdate não coloquei para conseguir testar
                 [eventID]
             );
     
@@ -620,8 +627,8 @@ export namespace TransactionsHandler{
                 );
 
                 await connection.execute(
-                    'INSERT INTO BET_WINNINGS VALUES(:betid, :accountid, :value)',
-                    [betID, accountID, winningAmount]
+                    'INSERT INTO BET_WINNINGS VALUES(:betid, :accountid, :value, :winningdate)',
+                    [betID, accountID, winningAmount, currdate]
                 );
             }
     
@@ -662,6 +669,80 @@ export namespace TransactionsHandler{
         }else {
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes.");
+        }
+    }
+
+    async function getAccountStatement(userToken: string):Promise<AccountStatement[] | undefined>{
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+
+            const userID = await AccountsHandler.getUserID(userToken);
+
+            if(!userID){
+                return undefined;
+            }
+            
+            const userStatement = await connection.execute<AccountStatement>(
+                `SELECT WINNING_DATE AS TRANSACTION_DATE, 'Ganho' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM BET_WINNINGS
+                WHERE ACCOUNT_ID = :userid
+
+                UNION ALL
+
+                SELECT BET_DATE AS TRANSACTION_DATE, 'Aposta' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM BETS
+                WHERE ACCOUNT_ID = :userid
+
+                UNION ALL
+
+                SELECT WITHDRAWAL_DATE AS TRANSACTION_DATE, 'Saque' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM WITHDRAWALS
+                WHERE ACCOUNT_ID = :userid
+
+                UNION ALL
+
+                SELECT DEPOSIT_DATE AS TRANSACTION_DATE, 'Deposito' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM DEPOSITS
+                WHERE ACCOUNT_ID = :userid
+
+                ORDER BY TRANSACTION_DATE DESC`,
+                {
+                    userid: userID
+                }
+            );
+
+            if(!userStatement.rows?.[0].AMOUNT){
+                return undefined;
+            }
+
+            return userStatement.rows;
+    
+        } catch (error) {
+            console.error('Erro ao obter dados:', error);
+            return undefined;
+        } finally {
+            if (connection) await connection.close();   
+        }
+    }
+
+    export const getAccountStatementHandler: RequestHandler = async(req: Request, res: Response) => {
+        const userToken = req.get('userToken');
+        
+        if(userToken){
+            const userStatement = await getAccountStatement(userToken);
+
+            if(userStatement){
+                res.statusCode = 200;
+                res.json(userStatement);
+            }else{
+                res.statusCode = 404;
+                res.send("Nenhuma transação encontrada");
+            }
+        }else{
+            res.statusCode = 400;
+            res.send("Parametros Faltantes");
         }
     }
 
