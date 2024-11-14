@@ -154,6 +154,7 @@ export namespace TransactionsHandler{
         let connection;
         try {
             const accountID = await AccountsHandler.getUserID(accountToken);
+            const currdate = new Date();
     
             if (!accountID) {
                 return 2;
@@ -174,8 +175,8 @@ export namespace TransactionsHandler{
             );
     
             await connection.execute(
-                'INSERT INTO DEPOSITS VALUES(SEQ_DEPOSIT.NEXTVAL, :accountid, :value, :cardid)',
-                [accountID, value, creditCardID]
+                'INSERT INTO DEPOSITS VALUES(SEQ_DEPOSIT.NEXTVAL, :accountid, :value, :cardid, :depositdate)',
+                [accountID, value, creditCardID, currdate]
             );
             await connection.commit();
     
