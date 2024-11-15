@@ -176,33 +176,53 @@ export namespace EventsHandler{
     export async function getFilteredEvents(status: string | undefined, date: string | undefined): Promise<EventRow[] | undefined> {
         let connection;
         try {
-            let baseQuery = 'SELECT * FROM EVENTS WHERE 1 = 1 ';
+            let baseQuery = `
+                SELECT 
+                    E.*, 
+                    NVL(COUNT(B.BET_ID), 0) AS TOTAL_BETS
+                FROM 
+                    EVENTS E
+                LEFT JOIN 
+                    BETS B 
+                ON 
+                    E.EVENT_ID = B.EVENT_ID
+                WHERE 
+                    1 = 1
+            `;
             const queryParams: any[] = [];
             const currDate = new Date();
 
-            if (status != 'Any'){
-                baseQuery += 'AND STATUS = :status ';
+            if (status !== 'Any') {
+                baseQuery += 'AND E.STATUS = :status ';
                 queryParams.push(status);
             }
-    
-            if (date != 'Any'){
-                if (date === 'Future'){
-                    baseQuery += 'AND EVENT_DATE > :currdate ';
+
+            if (date !== 'Any') {
+                if (date === 'Future') {
+                    baseQuery += 'AND E.EVENT_DATE > :currdate ';
                 } else if (date === 'Past') {
-                    baseQuery += 'AND EVENT_DATE < :currdate ';
-    
+                    baseQuery += 'AND E.EVENT_DATE < :currdate ';
                 }
                 queryParams.push(currDate);
             }
 
-            baseQuery += 'ORDER BY EVENT_ID ASC';
+            // Agrupamento e ordenação
+            baseQuery += `
+                GROUP BY 
+                    E.EVENT_ID, E.CREATOR_ID, E.TITLE, E.DESCRIPTION, 
+                    E.CATEGORY, E.STATUS, E.RIGHT_RESPONSE, 
+                    E.EVENT_DATE, E.START_DATE, E.END_DATE
+                ORDER BY 
+                    E.EVENT_ID ASC
+            `;
 
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
-            connection = await getOracleConnection();
+            const connection = await getOracleConnection();
 
-            const results = await connection.execute<EventRow>(
-                baseQuery, queryParams
+            const results = await connection.execute<EventRow & { TOTAL_BETS: number }>(
+                baseQuery, 
+                queryParams
             );
 
             await connection.close();
@@ -458,10 +478,26 @@ export namespace EventsHandler{
                 const currDate: Date = new Date();
                 const searchLine: string = `%${keyword.toLowerCase()}%`;
     
-                const searchResults = await connection.execute<EventRow>(
-                    `SELECT * FROM EVENTS WHERE END_DATE > :currdate AND STATUS = 'Approved' 
-                     AND (LOWER(TITLE) LIKE :searchline OR LOWER(DESCRIPTION) LIKE :searchline)
-                     ORDER BY END_DATE DESC`,
+                const searchResults = await connection.execute<EventRow & { TOTAL_BETS: number }>(
+                    `SELECT 
+                        E.*, 
+                        NVL(COUNT(B.BET_ID), 0) AS TOTAL_BETS
+                    FROM 
+                        EVENTS E
+                    LEFT JOIN 
+                        BETS B
+                    ON 
+                        E.EVENT_ID = B.EVENT_ID
+                    WHERE 
+                        E.END_DATE > :currdate 
+                        AND E.STATUS = 'Approved'
+                        AND (LOWER(E.TITLE) LIKE :searchline OR LOWER(E.DESCRIPTION) LIKE :searchline)
+                    GROUP BY 
+                        E.EVENT_ID, E.CREATOR_ID, E.TITLE, E.DESCRIPTION, 
+                        E.CATEGORY, E.STATUS, E.RIGHT_RESPONSE, 
+                        E.EVENT_DATE, E.START_DATE, E.END_DATE
+                    ORDER BY 
+                        E.END_DATE DESC`,
                     {
                         currdate: currDate,
                         searchline: searchLine
