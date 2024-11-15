@@ -109,3 +109,25 @@ body {
 .hidden {
     display: none;
 }
+
+#taxaModal .modal-content {
+    background-color: #1c1c1c; /* Fundo do modal */
+    color: #f8f9fa; /* Texto claro */
+    border: 1px solid #343a40; /* Borda cinza escuro */
+}
+
+#taxaModal .modal-header {
+    background-color: #2a2a2a; /* Cabeçalho cinza escuro */
+    color: #f8f9fa; /* Texto branco */
+}
+
+/* Personalização da tabela */
+#taxaModal .table-dark {
+    background-color: #343a40; /* Fundo da tabela */
+}
+
+#taxaModal .table-dark th, 
+#taxaModal .table-dark td {
+    color: #f8f9fa; /* Texto branco */
+    border-color: #454d55; /* Cor das bordas */
+}

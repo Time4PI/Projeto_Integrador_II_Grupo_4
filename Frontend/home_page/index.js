@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const depositLink = document.getElementById('deposit-link');
   const withdrawLink = document.getElementById('withdraw-link');
   const newEventLink = document.getElementById('newEvent-link');
+  const historyLink = document.getElementById('history-link');
 
   // Se o token existir, remova ou oculte o botão de login
   if (token) {
@@ -26,6 +27,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (depositLink) depositLink.style.display = 'inline-block';
     if (withdrawLink) withdrawLink.style.display = 'inline-block';
     if (newEventLink) newEventLink.style.display = 'inline-block';
+    if (historyLink) historyLink.style.display = 'inline-block';
 } else {
     // Se não houver token (usuário não logado)
     // Exibir apenas os links de Login e Sign Up
@@ -37,6 +39,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (depositLink) depositLink.style.display = 'none';
     if (withdrawLink) withdrawLink.style.display = 'none';
     if (newEventLink) newEventLink.style.display = 'none';
+    if (historyLink) historyLink.style.display = 'none';
 }
 });
 
@@ -114,14 +117,15 @@ let selectedOption = null; // Variável para armazenar a escolha ("Sim" ou "Não
 let betButtonId = null;
 
 // Função para abrir a modal
-function openBetModal(buttonId) {
+function openBetModal(buttonId, title) {
+    document.getElementById("eventName").innerHTML = `O evento ${title} irá ocorrer?`;
     betModal.style.display = "flex";
     betButtonId = buttonId;
 }
 
 // Função para fechar a modal
 function closeBetModal() {
-    noButton.classList.remove("btn-primary");
+    noButton.classList.remove("btn-danger");
     noButton.classList.add("btn-secondary");
     yesButton.classList.remove("btn-primary");
     yesButton.classList.add("btn-secondary");
@@ -149,7 +153,7 @@ yesButton.addEventListener("click", () => {
 
     yesButton.classList.remove("btn-secondary");
     yesButton.classList.add("btn-primary");
-    noButton.classList.remove("btn-primary");
+    noButton.classList.remove("btn-danger");
     noButton.classList.add("btn-secondary");
 
     yesButton.classList.add("selected");
@@ -160,7 +164,7 @@ noButton.addEventListener("click", () => {
     selectedOption = "não";
 
     noButton.classList.remove("btn-secondary");
-    noButton.classList.add("btn-primary");
+    noButton.classList.add("btn-danger");
     yesButton.classList.remove("btn-primary");
     yesButton.classList.add("btn-secondary");
 
@@ -202,7 +206,7 @@ function displayEvents(events) {
       } else {
         eventContainer.innerHTML = `
                 <div class="card-body text-center activity-card card w-100 mb-3">
-                <h3>${event.TITLE}</h3>
+                <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
                 <p>${event.DESCRIPTION}</p>
                 <p>Status: ${event.STATUS}</p>
                 <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
@@ -210,7 +214,7 @@ function displayEvents(events) {
                 <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
                 
                 <div class="bet-container mt-3">
-                    <button class="btn btn-primary w-100"  onclick="openBetModal(this.id)" id="${event.EVENT_ID}">Apostar</button>
+                    <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
                 </div>
                 </div>
         `;
@@ -354,7 +358,7 @@ async function performBet() {
             showSucessMessage("Aposta realizada com sucesso!");
 
             setTimeout(() => {
-                window.location.href = "../home_page/index.html";
+                window.location.href = "../home_page/";
             }, 2000);
         } catch (error) {
             console.error('Erro ao realizar login:', error);

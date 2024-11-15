@@ -92,7 +92,7 @@ async function performWithdraw() {
         showSucessMessage("Saque realizado com sucesso!")
 
         setTimeout(() => {
-            window.location.href = "../home_page/index.html";
+            window.location.href = "../home_page/";
         }, 2000);
         
         // Redirect or other success actions here
@@ -101,3 +101,7 @@ async function performWithdraw() {
     }
 }
 
+document.getElementById('openModalButton').addEventListener('click', function () {
+    const modal = new bootstrap.Modal(document.getElementById('taxaModal'));
+    modal.show();
+});

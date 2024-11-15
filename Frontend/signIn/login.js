@@ -77,7 +77,7 @@ async function performSignIn() {
                 showSucessMessage("Login realizado com sucesso!")
 
                 setTimeout(() => {
-                    window.location.href = "../home_page/index.html";
+                    window.location.href = "../home_page/";
                 }, 2000);
             } else {
                 console.error("Token não encontrado na resposta.");

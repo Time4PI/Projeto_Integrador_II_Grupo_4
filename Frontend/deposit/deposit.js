@@ -82,7 +82,7 @@ async function performDeposit() {
             showSucessMessage("Depósito realizado com sucesso!");
 
             setTimeout(() => {
-                window.location.href = "../home_page/index.html";
+                window.location.href = "../home_page/";
             }, 2000);
 
         } catch (error) {

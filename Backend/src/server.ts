@@ -15,6 +15,35 @@ app.use(express.json());
 // Serve arquivos estáticos da pasta "frontend"
 app.use(express.static(path.resolve(__dirname, "../../frontend")));
 
+app.get('/home_page', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/home_page/index.html"));
+});
+
+app.get('/history', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/history/history.html"));
+});
+
+app.get('/deposit', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/deposit/deposit.html"));
+});
+
+app.get('/withdraw', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/withdraw/withdraw.html"));
+});
+
+app.get('/signUp', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/signUp/signUp.html"));
+});
+
+app.get('/signIn', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/signIn/login.html"));
+});
+
+app.get('/newEvent', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/newEvent/newEvent.html"));
+});
+
+
 route.get('/', (req: Request, res: Response) => {
     res.status(403).send('Acesso não permitido para esta rota.');
 });

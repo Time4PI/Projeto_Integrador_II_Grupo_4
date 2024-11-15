@@ -1,0 +1,205 @@
+/* Estilos Gerais */
+body {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: #1c1c1c;
+    color: #b0b0b0;
+    border-right: 1px solid #333;
+}
+
+.sidebar-logo img {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.sidebar-nav .nav-link {
+    color: #b0b0b0;
+    text-decoration: none;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: #333;
+    color: #4a90e2;
+}
+
+/* Conteúdo Principal */
+.main-content {
+    color: #ffffff;
+}
+
+/* Header */
+.header {
+    background-color: #333;
+    border-radius: 5px;
+}
+
+/* Botões Personalizados */
+.header-controls .login {
+    background-color: #ff8c00;
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.header-controls .signup {
+    background-color: #32cd32;
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.header-controls .login:hover {
+    background-color: #e67e00;
+}
+
+.header-controls .signup:hover {
+    background-color: #28a428;
+}
+
+/* Caixa de Pesquisa */
+.search-box input {
+    background-color: #333;
+    color: #ffffff;
+    border: none;
+}
+
+/* Cartões de Atividade */
+.activity-card {
+    background-color: #1c1c1c;
+    color: #ffffff;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+
+.button-compact {
+    max-width: 100px; /* Ajuste para o valor desejado */
+    width: 100%;      /* Garante que o botão respeite o max-width */
+}
+
+#signOut-link #account-link #events-link #deposit-link #withdraw-link #newEvent-link{
+    display: none;
+}
+
+.dropdown-menu {
+    right: 0;
+    left: auto;
+    background-color: #303030; /* Cor de fundo preta */
+    color: white; /* Cor do texto */
+}
+
+.dropdown-menu a {
+    color: white; /* Cor dos links dentro do menu */
+}
+
+.dropdown-menu a:hover {
+    background-color: #495057; /* Cor de hover */
+}
+
+.search-box input::placeholder {
+    color: #2b2b2b; /* Cor cinza do placeholder */
+}
+
+/* Personalizando o estilo do campo de input */
+.search-box input {
+    background-color: #f0f0f0; /* Cor de fundo inicial */
+    color: #222222; /* Cor do texto */
+}
+
+/* Impede que o fundo fique branco quando o campo é focado */
+.search-box input:focus {
+    background-color: #f0f0f0; /* Mantém o fundo cinza claro */
+    border-color: #007bff; /* Cor de borda quando focado */
+    outline: none; /* Remove o contorno padrão */
+}
+
+/* Estilo da Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #1c1c1c;
+    padding: 30px; /* Aumenta o espaçamento interno */
+    border-radius: 5px;
+    width: 500px; /* Aumenta a largura do modal */
+    text-align: center;
+    max-width: 90%; /* Garante que o modal não ultrapasse a tela em telas menores */
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+/* Estilo customizado para o input */
+.custom-input {
+    margin-top: 10px;
+    background-color: #2a2a2a; /* Cor de fundo mais escura */
+    color: #fff; /* Cor do texto */
+    border-radius: 10px; /* Bordas arredondadas */
+    padding: 10px 15px; /* Aumenta o padding para mais conforto */
+    font-size: 16px; /* Ajusta o tamanho da fonte */
+    transition: all 0.3s ease; /* Transição suave para o foco */
+}
+
+.custom-input::placeholder {
+    color: #bbb; /* Cor do placeholder */
+}
+
+/* Efeito de foco */
+.custom-input:focus {
+    color: #fff;
+    border-color: #4CAF50; /* Borda verde ao focar */
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.7); /* Sombra verde suave */
+    background-color: #333; /* Escurece um pouco mais no foco */
+}
+
+#messageBox{
+    background-color: darkred;
+    color: white;
+    margin-top: 10px;
+    border-radius: 5px;
+    padding: 5px;
+    display: none;
+}
+
+/* Centralizar o conteúdo dentro do container */
+.header, .filters, .categories {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Estilo customizado para os botões */
+.filters button, .categories button {
+    padding: 10px 15px;
+    margin-bottom: 5px;
+}
+
+/* Estilo ao passar o mouse sobre os botões */
+.filters button:hover, .categories button:hover {
+    background-color: #35383d;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+    color: white;
+}
+

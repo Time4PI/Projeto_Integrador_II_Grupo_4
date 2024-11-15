@@ -59,7 +59,7 @@ async function submitEvent() {
 
         // Redirecionamento ou outras ações após o sucesso
         setTimeout(() => {
-            window.location.href = "../home_page/index.html";
+            window.location.href = "../home_page/";
         }, 2000);
 
     } catch (error) {
