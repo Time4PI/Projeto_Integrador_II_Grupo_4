@@ -48,6 +48,7 @@ async function performSignUp() {
     var completeName = document.getElementById("completeName").value;
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
+    var date = document.getElementById("birthdate");
 
     if (isValidSignUp(completeName, email, password)) {
         try {
@@ -57,6 +58,7 @@ async function performSignUp() {
                     'name': completeName,
                     'email': email,
                     'password': password,
+                    'birthDate': date,
                 }
             });
 

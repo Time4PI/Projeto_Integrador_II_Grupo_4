@@ -15,30 +15,30 @@
             <h1>Criar Novo Evento</h1>
             <form>
                 <label for="title">Título</label>
-                <input type="text" id="title" name="title" placeholder="Coloque o título do evento" required>
+                <input type="text" id="title" name="title" onfocus="hideErrorMessage()" placeholder="Coloque o título do evento" required>
 
                 <label for="description">Descrição</label>
-                <textarea id="description" name="description" placeholder="Coloque a descrição" rows="4" required></textarea>
+                <textarea id="description" name="description" onfocus="hideErrorMessage()" placeholder="Coloque a descrição do evento" rows="4" required></textarea>
 
                 <label for="category">Categoria</label>
-                <input type="text" id="category" name="category" placeholder="Coloque a categoria do evento" required>
+                <input type="text" id="category" name="category" onfocus="hideErrorMessage()" placeholder="Coloque a categoria do evento" required>
 
-                <label for="eventDate">Data do Evento</label>
-                <input type="date" id="eventDate" name="eventDate" required>
+                <label for="eventDate">Data de Acontecimento do Evento</label>
+                <input type="date" id="eventDate" onfocus="hideErrorMessage()" name="eventDate" required>
 
-                <label for="startDate">Data de Começo</label>
-                <input type="date" id="startDate" name="startDate" required>
+                <label for="startDate">Data de Começo das Apostas</label>
+                <input type="date" id="startDate" onfocus="hideErrorMessage()" name="startDate" required>
 
-                <label for="startHour">Hora de Começo</label>
-                <input type="time" id="startHour" name="startHour" required>
+                <label for="startHour">Hora de Começo das Apostas</label>
+                <input type="time" id="startHour" onfocus="hideErrorMessage()" name="startHour" required>
 
-                <label for="endDate">Data do Fim</label>
-                <input type="date" id="endDate" name="endDate" required>
+                <label for="endDate">Data do Fim das Apostas</label>
+                <input type="date" id="endDate"  onfocus="hideErrorMessage()" name="endDate" required>
 
-                <label for="endHour">Hora do Fim</label>
-                <input type="time" id="endHour" name="endHour" required>
+                <label for="endHour">Hora do Fim das Apostas</label>
+                <input type="time" id="endHour" onfocus="hideErrorMessage()" name="endHour" required>
 
-                <button type="button" class="event-button" onclick="submitEvent()">Create Event</button>
+                <button type="button" class="event-button" onclick="submitEvent()">Criar Evento</button>
                 <div id="messageBox">
                     <p id="message"></p>
                 </div>

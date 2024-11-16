@@ -51,7 +51,8 @@ body {
 
 .signup-box input[type="text"],
 .signup-box input[type="email"],
-.signup-box input[type="password"] {
+.signup-box input[type="password"],
+.signup-box input[type="date"] {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;

@@ -4,6 +4,19 @@ function showErrorMessage(message) {
     mb.style.display = "block";
 }
 
+function showSucessMessage(message) {
+    var mb = document.getElementById("messageBox");
+    document.getElementById("message").innerHTML = message;
+    mb.style.display = "block";
+    mb.style.backgroundColor = "green";
+}
+
+function hideErrorMessage() {
+    var mb = document.getElementById("messageBox");
+    mb.style.display = "none";
+}
+
+
 async function submitEvent() {
     const title = document.getElementById("title").value.trim();
     const description = document.getElementById("description").value.trim();
@@ -55,7 +68,7 @@ async function submitEvent() {
 
         const resultText = await response.text();
         console.info(`Resposta: ${resultText}`);
-        alert("Evento cadastrado com sucesso!");
+        showSucessMessage("Evento cadastrado com sucesso!");
 
         // Redirecionamento ou outras ações após o sucesso
         setTimeout(() => {

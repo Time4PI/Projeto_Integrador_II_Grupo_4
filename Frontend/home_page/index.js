@@ -199,8 +199,8 @@ function displayEvents(events) {
                 <p>${event.DESCRIPTION}</p>
                 <p>Status: ${event.STATUS}</p>
                 <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-                <p>Data de Início: ${new Date(event.START_DATE).toLocaleDateString()}</p>
-                <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
+                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleDateString()}</p>
+                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleDateString()}</p>
                 </div>
         `;
       } else {
@@ -210,9 +210,15 @@ function displayEvents(events) {
                 <p>${event.DESCRIPTION}</p>
                 <p>Status: ${event.STATUS}</p>
                 <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-                <p>Data de Início: ${new Date(event.START_DATE).toLocaleDateString()}</p>
-                <p>Data de Fim: ${new Date(event.END_DATE).toLocaleDateString()}</p>
-                
+                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleDateString()}</p>
+                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleDateString()}</p>
+                <p>
+                 ${
+                event.TOTAL_BETS === 0 
+                ? 'Seja o primeiro a apostar!' 
+                : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'pessoas já apostaram!' : 'pessoa já apostou!'}`
+                }
+                </p>
                 <div class="bet-container mt-3">
                     <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
                 </div>
