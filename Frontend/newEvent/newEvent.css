@@ -106,3 +106,35 @@ body {
     padding: 5px;
     display: none;
 }
+
+/* Estilo do dropdown */
+.event-box select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #444;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Estilo para quando o select é focado */
+.event-box select:focus {
+    border-color: rgb(26, 118, 238); /* Adiciona uma borda azul ao focar */
+    background-color: #555;
+}
+
+/* Estilo para o texto do option */
+.event-box select option {
+    background-color: #444;
+    color: #fff;
+    font-size: 14px;
+}
+
+/* Estilo do option ao passar o mouse */
+.event-box select option:hover {
+    background-color: #555;
+}

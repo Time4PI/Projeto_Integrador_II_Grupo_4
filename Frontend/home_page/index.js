@@ -15,6 +15,8 @@ function signOut() {
     const withdrawLink = document.getElementById('withdraw-link');
     const newEventLink = document.getElementById('newEvent-link');
     const historyLink = document.getElementById('history-link');
+    const sortDateButton = document.getElementById('sort-by-end-date');
+    const sortBetButton = document.getElementById('sort-by-bets');
   
     // Se o token existir, remova ou oculte o botão de login
     if (token) {
@@ -28,6 +30,8 @@ function signOut() {
       if (withdrawLink) withdrawLink.style.display = 'inline-block';
       if (newEventLink) newEventLink.style.display = 'inline-block';
       if (historyLink) historyLink.style.display = 'inline-block';
+      if(sortBetButton) sortBetButton.style.display = 'inline-block';
+      if(sortDateButton) sortDateButton.style.display = 'inline-block';
   } else {
       // Se não houver token (usuário não logado)
       // Exibir apenas os links de Login e Sign Up
@@ -40,6 +44,8 @@ function signOut() {
       if (withdrawLink) withdrawLink.style.display = 'none';
       if (newEventLink) newEventLink.style.display = 'none';
       if (historyLink) historyLink.style.display = 'none';
+      if(sortBetButton) sortBetButton.style.display = 'none';
+      if(sortDateButton) sortDateButton.style.display = 'none';
   }
   });
   
@@ -166,38 +172,40 @@ document.getElementById("sort-by-bets").addEventListener("click", toggleEventOrd
 // Função para carregar eventos com base na pesquisa
 async function loadEventsSearch(word) {
     const keyword = word.trim();
+    const token = localStorage.getItem('authToken');
     currentSearchText = keyword; // Atualiza a variável de pesquisa
-    
-    try {
-        const response = await fetch(`http://localhost:3000/searchEvent`, {
-            method: 'GET',
-            headers: {
-                'keyword': keyword,
+    if(token){
+        try {
+            const response = await fetch(`http://localhost:3000/searchEvent`, {
+                method: 'GET',
+                headers: {
+                    'keyword': keyword,
+                }
+            });
+
+            if (!response.ok) throw new Error("Falha ao carregar eventos");
+
+            const data = await response.json();
+            console.log(data);  // Exibe os dados para depuração
+
+            if (data.events && data.events.length > 0) {
+                filteredEvents = data.events; // Armazena os eventos filtrados pela pesquisa
+
+                // Se o filtro de ordenação estiver ativado, ordena os eventos
+                if (isSortedByBets) {
+                    filteredEvents = sortEventsByBets(filteredEvents); // Ordena os eventos por TOTAL_BETS
+                }
+                if (isSortedByEndDate) {
+                    filteredEvents = sortEventsByEndDate(filteredEvents); // Ordena os eventos pela proximidade da data de fim
+                }
+
+                displayEvents(filteredEvents);  // Exibe os eventos na interface
+            } else {
+                console.log('Nenhum evento encontrado.');
             }
-        });
-
-        if (!response.ok) throw new Error("Falha ao carregar eventos");
-
-        const data = await response.json();
-        console.log(data);  // Exibe os dados para depuração
-
-        if (data.events && data.events.length > 0) {
-            filteredEvents = data.events; // Armazena os eventos filtrados pela pesquisa
-
-            // Se o filtro de ordenação estiver ativado, ordena os eventos
-            if (isSortedByBets) {
-                filteredEvents = sortEventsByBets(filteredEvents); // Ordena os eventos por TOTAL_BETS
-            }
-            if (isSortedByEndDate) {
-                filteredEvents = sortEventsByEndDate(filteredEvents); // Ordena os eventos pela proximidade da data de fim
-            }
-
-            displayEvents(filteredEvents);  // Exibe os eventos na interface
-        } else {
-            console.log('Nenhum evento encontrado.');
+        } catch (error) {
+            console.error("Erro ao carregar eventos:", error);
         }
-    } catch (error) {
-        console.error("Erro ao carregar eventos:", error);
     }
 }
 // Captura o campo de entrada
@@ -283,47 +291,49 @@ searchBar.addEventListener("input", () => {
   
   function displayEvents(events) {
     // Seleciona o elemento pai onde os containers de eventos serão adicionados
+    const token = localStorage.getItem('authToken');
     const mainContainer = document.getElementById("main-events-container");
 
     // Limpa o container antes de adicionar novos eventos
     mainContainer.innerHTML = "";
+    if(token){
+        // Verifica se há eventos para exibir
+        if (!events || events.length === 0) {
+            mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
+            return;
+        }
 
-    // Verifica se há eventos para exibir
-    if (!events || events.length === 0) {
-        mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
-        return;
-    }
+        // Cria um novo container para cada evento e insere no mainContainer
+        events.forEach(event => {
+            // Cria um novo elemento que representa o container de um evento
+            const eventContainer = document.createElement("div");
+            eventContainer.classList.add("events-container");
 
-    // Cria um novo container para cada evento e insere no mainContainer
-    events.forEach(event => {
-        // Cria um novo elemento que representa o container de um evento
-        const eventContainer = document.createElement("div");
-        eventContainer.classList.add("events-container");
-
-        // Preenche o container com o conteúdo do evento
-        eventContainer.innerHTML = `
-        <div class="card-body text-center activity-card card w-100 mb-3">
-            <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
-            <p>${event.DESCRIPTION}</p>
-            <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-            <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-            <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-            <p>
-                ${
-                    event.TOTAL_BETS === 0 
-                    ? 'Seja o primeiro a apostar!' 
-                    : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
-                }
-            </p>
-            <div class="bet-container mt-3">
-                <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
+            // Preenche o container com o conteúdo do evento
+            eventContainer.innerHTML = `
+            <div class="card-body text-center activity-card card w-100 mb-3">
+                <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
+                <p>${event.DESCRIPTION}</p>
+                <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <p>
+                    ${
+                        event.TOTAL_BETS === 0 
+                        ? 'Seja o primeiro a apostar!' 
+                        : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
+                    }
+                </p>
+                <div class="bet-container mt-3">
+                    <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
+                </div>
             </div>
-        </div>
-    `;
-        
-        // Adiciona o container do evento ao mainContainer
-        mainContainer.appendChild(eventContainer);
-    });
+        `;
+            
+            // Adiciona o container do evento ao mainContainer
+            mainContainer.appendChild(eventContainer);
+        });
+    }
 }
   
   
