@@ -1,68 +1,72 @@
 function signOut() {
-  localStorage.removeItem('authToken');
-  location.reload();
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-  // Verifica se o token de autenticação está presente no localStorage
-  const token = localStorage.getItem('authToken');
-  const loginLink = document.getElementById('login-link');
-  const signUpLink = document.getElementById('signUp-link');
-  const signOutLink = document.getElementById('signOut-link');
-  const accountLink = document.getElementById('account-link');
-  const eventsLink = document.getElementById('events-link');
-  const depositLink = document.getElementById('deposit-link');
-  const withdrawLink = document.getElementById('withdraw-link');
-  const newEventLink = document.getElementById('newEvent-link');
-  const historyLink = document.getElementById('history-link');
-
-  // Se o token existir, remova ou oculte o botão de login
-  if (token) {
-    // Mostrar todos os botões
-    if (loginLink) loginLink.style.display = 'none';
-    if (signUpLink) signUpLink.style.display = 'none';
-    if (signOutLink) signOutLink.style.display = 'inline-block';
-    if (accountLink) accountLink.style.display = 'inline-block';
-    if (eventsLink) eventsLink.style.display = 'inline-block';
-    if (depositLink) depositLink.style.display = 'inline-block';
-    if (withdrawLink) withdrawLink.style.display = 'inline-block';
-    if (newEventLink) newEventLink.style.display = 'inline-block';
-    if (historyLink) historyLink.style.display = 'inline-block';
-} else {
-    // Se não houver token (usuário não logado)
-    // Exibir apenas os links de Login e Sign Up
-    if (loginLink) loginLink.style.display = 'inline-block';
-    if (signUpLink) signUpLink.style.display = 'inline-block';
-    if (signOutLink) signOutLink.style.display = 'none';
-    if (accountLink) accountLink.style.display = 'none';
-    if (eventsLink) eventsLink.style.display = 'none';
-    if (depositLink) depositLink.style.display = 'none';
-    if (withdrawLink) withdrawLink.style.display = 'none';
-    if (newEventLink) newEventLink.style.display = 'none';
-    if (historyLink) historyLink.style.display = 'none';
-}
-});
-
+    localStorage.removeItem('authToken');
+    location.reload();
+  }
+  
+  document.addEventListener("DOMContentLoaded", function() {
+    // Verifica se o token de autenticação está presente no localStorage
+    const token = localStorage.getItem('authToken');
+    const loginLink = document.getElementById('login-link');
+    const signUpLink = document.getElementById('signUp-link');
+    const signOutLink = document.getElementById('signOut-link');
+    const accountLink = document.getElementById('account-link');
+    const eventsLink = document.getElementById('events-link');
+    const depositLink = document.getElementById('deposit-link');
+    const withdrawLink = document.getElementById('withdraw-link');
+    const newEventLink = document.getElementById('newEvent-link');
+    const historyLink = document.getElementById('history-link');
+  
+    // Se o token existir, remova ou oculte o botão de login
+    if (token) {
+      // Mostrar todos os botões
+      if (loginLink) loginLink.style.display = 'none';
+      if (signUpLink) signUpLink.style.display = 'none';
+      if (signOutLink) signOutLink.style.display = 'inline-block';
+      if (accountLink) accountLink.style.display = 'inline-block';
+      if (eventsLink) eventsLink.style.display = 'inline-block';
+      if (depositLink) depositLink.style.display = 'inline-block';
+      if (withdrawLink) withdrawLink.style.display = 'inline-block';
+      if (newEventLink) newEventLink.style.display = 'inline-block';
+      if (historyLink) historyLink.style.display = 'inline-block';
+  } else {
+      // Se não houver token (usuário não logado)
+      // Exibir apenas os links de Login e Sign Up
+      if (loginLink) loginLink.style.display = 'inline-block';
+      if (signUpLink) signUpLink.style.display = 'inline-block';
+      if (signOutLink) signOutLink.style.display = 'none';
+      if (accountLink) accountLink.style.display = 'none';
+      if (eventsLink) eventsLink.style.display = 'none';
+      if (depositLink) depositLink.style.display = 'none';
+      if (withdrawLink) withdrawLink.style.display = 'none';
+      if (newEventLink) newEventLink.style.display = 'none';
+      if (historyLink) historyLink.style.display = 'none';
+  }
+  });
+  
 let loadedEvents = [];
+let filteredEvents = [];  // Variável para armazenar os eventos filtrados pela pesquisa
 let isSortedByBets = false;
+let currentSearchText = ""; // Variável para armazenar a pesquisa atual
+  
 
 async function loadEvents() {
     const status = 'Approved';
     const date = 'Future';
-
+  
     try {
         const response = await fetch(`http://localhost:3000/getEvents?status=${status}&date=${date}`, {
             method: 'GET',
         });
-
+  
         if (!response.ok) throw new Error("Falha ao carregar eventos");
-
+  
         const data = await response.json();
         console.log(data); // Exibe os dados para depuração
-
+  
         if (data.events && data.events.length > 0) {
             loadedEvents = data.events; // Armazena os eventos carregados
-            displayEvents(loadedEvents); // Exibe os eventos normalmente
+            filteredEvents = loadedEvents; // Inicializa a lista filtrada com todos os eventos
+            displayEvents(filteredEvents); // Exibe os eventos normalmente
         } else {
             console.log('Nenhum evento encontrado.');
         }
@@ -76,35 +80,94 @@ function sortEventsByBets(events) {
     return events.sort((a, b) => b.TOTAL_BETS - a.TOTAL_BETS);
 }
 
+// Função para ordenar eventos pela proximidade da data de fim das apostas
+function sortEventsByEndDate(events) {
+    return events.sort((a, b) => new Date(a.END_DATE) - new Date(b.END_DATE));
+}
+
 // Função para alternar entre eventos ordenados e não ordenados
 function toggleEventOrder() {
     const button = document.getElementById("sort-by-bets");
+    const buttonDate = document.getElementById("sort-by-end-date");
 
     if (isSortedByBets) {
         // Se já estiver ordenado, volta à ordem original
-        displayEvents(loadedEvents);
-        // Remove a classe que torna o botão azul
+        displayEvents(filteredEvents.length > 0 ? filteredEvents : loadedEvents);
         button.classList.remove("btn-primary");
         button.classList.add("btn-secondary");
     } else {
         // Se não estiver ordenado, ordena os eventos
-        const sortedEvents = sortEventsByBets([...loadedEvents]);
+        const sortedEvents = sortEventsByBets([...filteredEvents.length > 0 ? filteredEvents : loadedEvents]);
         displayEvents(sortedEvents);
-        // Altera a classe do botão para azul
         button.classList.remove("btn-secondary");
         button.classList.add("btn-primary");
     }
 
+    buttonDate.classList.remove("btn-primary");
+    buttonDate.classList.add("btn-secondary");
     // Alterna o estado da ordenação
     isSortedByBets = !isSortedByBets;
+    if(isSortedByEndDate) isSortedByEndDate = !isSortedByEndDate;
 }
+
+let isSortedByEndDate = false; // Variável para controlar o estado do toggle para ordenação por data de fim das apostas
+
+// Função para alternar a ordenação pela proximidade da data de fim das apostas
+function toggleSortByEndDate() {
+    const button = document.getElementById("sort-by-end-date");
+    const buttonBet = document.getElementById("sort-by-bets");
+
+    // Verifica se a pesquisa está ativa
+    const eventsToDisplay = currentSearchText.trim() === "" ? loadedEvents : filteredEvents;
+
+    if (isSortedByEndDate) {
+        // Se já estiver ordenado, volta à ordem original
+        displayEvents(eventsToDisplay);  // Exibe os eventos sem ordenação
+        button.classList.remove("btn-primary");
+        button.classList.add("btn-secondary");
+    } else {
+        // Se não estiver ordenado, ordena os eventos pela proximidade da data de fim das apostas
+        const sortedByEndDate = sortEventsByEndDate([...eventsToDisplay]); // Ordena os eventos pela data de fim das apostas
+        displayEvents(sortedByEndDate);  // Exibe os eventos ordenados
+        button.classList.remove("btn-secondary");
+        button.classList.add("btn-primary");
+    }
+
+    buttonBet.classList.remove("btn-primary");
+    buttonBet.classList.add("btn-secondary");
+    // Alterna o estado da ordenação
+    isSortedByEndDate = !isSortedByEndDate;
+    if(isSortedByBets) isSortedByBets = !isSortedByBets; 
+}
+
+// Função para ordenar eventos pela proximidade da data de fim das apostas
+function sortEventsByEndDate(events) {
+    const currentDate = new Date(); // Obtém a data atual
+
+    return events.sort((a, b) => {
+        const aEndDate = new Date(a.END_DATE); // Data de fim das apostas do evento 'a'
+        const bEndDate = new Date(b.END_DATE); // Data de fim das apostas do evento 'b'
+        
+        // Calcula a diferença de tempo entre a data atual e a data de fim das apostas
+        const aTimeRemaining = aEndDate - currentDate;
+        const bTimeRemaining = bEndDate - currentDate;
+
+        // Ordena pelo tempo restante, do mais próximo para o mais distante
+        return aTimeRemaining - bTimeRemaining;
+    });
+}
+
+// Adiciona evento ao botão para alternar a ordenação
+document.getElementById("sort-by-end-date").addEventListener("click", toggleSortByEndDate);
 
 // Adiciona evento ao botão para alternar a ordenação
 document.getElementById("sort-by-bets").addEventListener("click", toggleEventOrder);
 
+// Função para carregar eventos com base na pesquisa
 async function loadEventsSearch(word) {
-    const keyword = word;
-  
+    const keyword = word.trim();
+    currentSearchText = keyword; // Atualiza a variável de pesquisa
+    
     try {
         const response = await fetch(`http://localhost:3000/searchEvent`, {
             method: 'GET',
@@ -112,287 +175,293 @@ async function loadEventsSearch(word) {
                 'keyword': keyword,
             }
         });
-  
+
         if (!response.ok) throw new Error("Falha ao carregar eventos");
-  
+
         const data = await response.json();
         console.log(data);  // Exibe os dados para depuração
-  
+
         if (data.events && data.events.length > 0) {
-            displayEvents(data.events);  // Exibe os eventos na interface
+            filteredEvents = data.events; // Armazena os eventos filtrados pela pesquisa
+
+            // Se o filtro de ordenação estiver ativado, ordena os eventos
+            if (isSortedByBets) {
+                filteredEvents = sortEventsByBets(filteredEvents); // Ordena os eventos por TOTAL_BETS
+            }
+            if (isSortedByEndDate) {
+                filteredEvents = sortEventsByEndDate(filteredEvents); // Ordena os eventos pela proximidade da data de fim
+            }
+
+            displayEvents(filteredEvents);  // Exibe os eventos na interface
         } else {
             console.log('Nenhum evento encontrado.');
         }
     } catch (error) {
         console.error("Erro ao carregar eventos:", error);
     }
-  }
-
+}
 // Captura o campo de entrada
 const searchBar = document.getElementById("searchBar");
 
 // Adiciona um listener ao campo de entrada para capturar o texto digitado em tempo real
 searchBar.addEventListener("input", () => {
     const searchText = searchBar.value;
-    loadEventsSearch(searchText);
-    if(searchBar.value == 0){
-        loadEvents();
-    }
-    // Aqui você pode chamar uma função para fazer a busca com o texto capturado
-});  
-
-const betModal = document.getElementById("betModal");
-const closeButton = document.querySelector(".close-button");
-const confirmBetButton = document.getElementById("confirmBetButton");
-const yesButton = document.getElementById("yesButton");
-const noButton = document.getElementById("noButton");
-const betAmountInput = document.getElementById("betAmount");
-
-let selectedOption = null; // Variável para armazenar a escolha ("Sim" ou "Não")
-let betButtonId = null;
-
-// Função para abrir a modal
-function openBetModal(buttonId, title) {
-    document.getElementById("eventName").innerHTML = `O evento ${title} irá ocorrer?`;
-    betModal.style.display = "flex";
-    betButtonId = buttonId;
-}
-
-// Função para fechar a modal
-function closeBetModal() {
-    noButton.classList.remove("btn-danger");
-    noButton.classList.add("btn-secondary");
-    yesButton.classList.remove("btn-primary");
-    yesButton.classList.add("btn-secondary");
-    yesButton.classList.remove("selected");
-    noButton.classList.remove("selected");
-    betModal.style.display = "none";
-    selectedOption = null; // Reseta a escolha ao fechar
-    betButtonId = null;
-    betAmountInput.value = ''; // Limpa o campo de valor
-}
-
-// Evento para fechar a modal ao clicar no botão de fechar
-closeButton.addEventListener("click", closeBetModal);
-
-// Evento para fechar a modal ao clicar fora do conteúdo da modal
-window.addEventListener("click", (event) => {
-    if (event.target === betModal) {
-        closeBetModal();
-    }
-});
-
-// Eventos para os botões "Sim" e "Não"
-yesButton.addEventListener("click", () => {
-    selectedOption = "sim";
-
-    yesButton.classList.remove("btn-secondary");
-    yesButton.classList.add("btn-primary");
-    noButton.classList.remove("btn-danger");
-    noButton.classList.add("btn-secondary");
-
-    yesButton.classList.add("selected");
-    noButton.classList.remove("selected");
-});
-
-noButton.addEventListener("click", () => {
-    selectedOption = "não";
-
-    noButton.classList.remove("btn-secondary");
-    noButton.classList.add("btn-danger");
-    yesButton.classList.remove("btn-primary");
-    yesButton.classList.add("btn-secondary");
-
-    noButton.classList.add("selected");
-    yesButton.classList.remove("selected");
-});
-
-function displayEvents(events) {
-  // Seleciona o elemento pai onde os containers de eventos serão adicionados
-  const mainContainer = document.getElementById("main-events-container");
-
-  // Limpa o container antes de adicionar novos eventos
-  mainContainer.innerHTML = "";
-
-  // Verifica se há eventos para exibir
-  if (!events || events.length === 0) {
-      mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
-      return;
-  }
-
-  // Cria um novo container para cada evento e insere no mainContainer
-  events.forEach(event => {
-      // Cria um novo elemento que representa o container de um evento
-      const eventContainer = document.createElement("div");
-      eventContainer.classList.add("events-container");
-
-      // Preenche o container com o conteúdo do evento
-      eventContainer.innerHTML = `
-      <div class="card-body text-center activity-card card w-100 mb-3">
-          <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
-          <p>${event.DESCRIPTION}</p>
-          <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-          <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-          <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-          <p>
-              ${
-                  event.TOTAL_BETS === 0 
-                  ? 'Seja o primeiro a apostar!' 
-                  : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
-              }
-          </p>
-          <div class="bet-container mt-3">
-              <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
-          </div>
-      </div>
-  `;
-  
-    
-    
-      // Adiciona o container do evento ao mainContainer
-      mainContainer.appendChild(eventContainer);
-  });
-}
-
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Verifica se o token de autenticação existe no localStorage
-  const authToken = localStorage.getItem('authToken');
-
-  if (authToken) {
-      // Se o usuário está logado (authToken existe), chama a função loadEvents
-      loadEvents();
-      loadUserInfo();
-  } 
-});
-
-
-async function loadUserInfo() {
-  // Obtém o token de autenticação do localStorage
-  const token = localStorage.getItem('authToken');
-  console.log(localStorage.getItem('authToken'));
-
-  if (!token) {
-      console.error('Token de autenticação não encontrado.');
-      return;
-  }
-
-  try {
-      // Faz a chamada à API para obter as informações do usuário
-      const response = await fetch("http://localhost:3000/getUserInfo", {
-          method: 'GET',
-          headers: {
-              'token': token, // Token sem prefixo "Bearer"
-          },
-      });
-
-      if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Falha ao carregar informações do usuário: ${errorText}`);
-      }
-
-      // Obtém os dados da resposta e os insere nos elementos HTML
-      const data = await response.json();
-      console.log(data);
-      document.getElementById("userName").textContent = data.name || "N/A";
-      document.getElementById("userEmail").textContent = data.email || "N/A";
-      document.getElementById("userBalance").textContent = `R$ ${data.balance.toFixed(2)}` || "N/A";
-  } catch (error) {
-      console.error("Erro ao carregar informações do usuário:", error);
-  }
-}
-
-function showErrorMessage(message) {
-    var mb = document.getElementById("messageBox");
-    document.getElementById("message").innerHTML = message;
-    mb.style.display = "block";
-    mb.style.backgroundColor = "red";
-}
-
-function showSucessMessage(message) {
-    var mb = document.getElementById("messageBox");
-    document.getElementById("message").innerHTML = message;
-    mb.style.display = "block";
-    mb.style.backgroundColor = "green";
-}
-
-function hideErrorMessage() {
-    var mb = document.getElementById("messageBox");
-    mb.style.display = "none";
-}
-
-function isValidBet(selectedOption, betAmount) {
-    let valid = false;
-
-    // Remove espaços extras
-    selectedOption = selectedOption;
-    betAmount = betAmount;
-
-    // Validação
-    if (selectedOption && betAmount) {
-        valid = true;
-    } else if (!selectedOption && !betAmount) {
-        // Caso nenhum campo tenha sido preenchido
-        showErrorMessage("Por favor, selecione 'Sim' ou 'Não' e insira um valor para a aposta.");
+    if (searchText.trim() === "") {
+        // Se a pesquisa estiver vazia, exibe todos os eventos
+        filteredEvents = loadedEvents;
+        displayEvents(filteredEvents);
     } else {
-        // Verifica qual campo está vazio
-        if (!selectedOption) {
-            showErrorMessage("Por favor, selecione 'Sim' ou 'Não' para a aposta.");
-        } else if (!betAmount) {
-            showErrorMessage("Por favor, insira um valor válido para a aposta.");
-        }
+        loadEventsSearch(searchText);  // Realiza a pesquisa e exibe os eventos encontrados
+    }
+});
+  
+  const betModal = document.getElementById("betModal");
+  const closeButton = document.querySelector(".close-button");
+  const confirmBetButton = document.getElementById("confirmBetButton");
+  const yesButton = document.getElementById("yesButton");
+  const noButton = document.getElementById("noButton");
+  const betAmountInput = document.getElementById("betAmount");
+  
+  let selectedOption = null; // Variável para armazenar a escolha ("Sim" ou "Não")
+  let betButtonId = null;
+  
+  // Função para abrir a modal
+  function openBetModal(buttonId, title) {
+      document.getElementById("eventName").innerHTML = `O evento ${title} irá ocorrer?`;
+      betModal.style.display = "flex";
+      betButtonId = buttonId;
+  }
+  
+  // Função para fechar a modal
+  function closeBetModal() {
+      noButton.classList.remove("btn-danger");
+      noButton.classList.add("btn-secondary");
+      yesButton.classList.remove("btn-primary");
+      yesButton.classList.add("btn-secondary");
+      yesButton.classList.remove("selected");
+      noButton.classList.remove("selected");
+      betModal.style.display = "none";
+      selectedOption = null; // Reseta a escolha ao fechar
+      betButtonId = null;
+      betAmountInput.value = ''; // Limpa o campo de valor
+  }
+  
+  // Evento para fechar a modal ao clicar no botão de fechar
+  closeButton.addEventListener("click", closeBetModal);
+  
+  // Evento para fechar a modal ao clicar fora do conteúdo da modal
+  window.addEventListener("click", (event) => {
+      if (event.target === betModal) {
+          closeBetModal();
+      }
+  });
+  
+  // Eventos para os botões "Sim" e "Não"
+  yesButton.addEventListener("click", () => {
+      selectedOption = "sim";
+  
+      yesButton.classList.remove("btn-secondary");
+      yesButton.classList.add("btn-primary");
+      noButton.classList.remove("btn-danger");
+      noButton.classList.add("btn-secondary");
+  
+      yesButton.classList.add("selected");
+      noButton.classList.remove("selected");
+  });
+  
+  noButton.addEventListener("click", () => {
+      selectedOption = "não";
+  
+      noButton.classList.remove("btn-secondary");
+      noButton.classList.add("btn-danger");
+      yesButton.classList.remove("btn-primary");
+      yesButton.classList.add("btn-secondary");
+  
+      noButton.classList.add("selected");
+      yesButton.classList.remove("selected");
+  });
+  
+  function displayEvents(events) {
+    // Seleciona o elemento pai onde os containers de eventos serão adicionados
+    const mainContainer = document.getElementById("main-events-container");
+
+    // Limpa o container antes de adicionar novos eventos
+    mainContainer.innerHTML = "";
+
+    // Verifica se há eventos para exibir
+    if (!events || events.length === 0) {
+        mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
+        return;
     }
 
-    console.info("Opção Selecionada:", selectedOption);
-    console.info("Valor da Aposta:", betAmount);
+    // Cria um novo container para cada evento e insere no mainContainer
+    events.forEach(event => {
+        // Cria um novo elemento que representa o container de um evento
+        const eventContainer = document.createElement("div");
+        eventContainer.classList.add("events-container");
 
-    return valid;
-}
-
-
-async function performBet() {
-    const token = localStorage.getItem('authToken');
-    var eventID = betButtonId;
-    var value = document.getElementById('betAmount').value;
-    var betOption = selectedOption;
-
-    console.log(token);
-    console.log(eventID);
-    console.log(value);
-    console.log(betOption);
-
-    if (isValidBet(betOption, value)) {
-        try {
-            const response = await fetch("http://localhost:3000/betOnEvent", {
-                method: 'PUT',
-                headers: {
-                    'accountToken': token,
-                    'eventID': eventID,
-                    'value': value,
-                    'betOption': betOption,
+        // Preenche o container com o conteúdo do evento
+        eventContainer.innerHTML = `
+        <div class="card-body text-center activity-card card w-100 mb-3">
+            <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
+            <p>${event.DESCRIPTION}</p>
+            <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+            <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+            <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+            <p>
+                ${
+                    event.TOTAL_BETS === 0 
+                    ? 'Seja o primeiro a apostar!' 
+                    : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
                 }
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text(); // Lê como texto
-                showErrorMessage(errorText);
-                throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
-            }
-
-            const resultText = await response.text(); // Lê a resposta como texto
-            console.info(`Resposta: ${resultText}`); // Aqui você pode obter a resposta do backend
-
-            // Exibe a mensagem de sucesso após o cadastro
-            showSucessMessage("Aposta realizada com sucesso!");
-
-            setTimeout(() => {
-                window.location.href = "../home_page/";
-            }, 2000);
-        } catch (error) {
-            console.error('Erro ao realizar login:', error);
-        }
-    }
+            </p>
+            <div class="bet-container mt-3">
+                <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
+            </div>
+        </div>
+    `;
+        
+        // Adiciona o container do evento ao mainContainer
+        mainContainer.appendChild(eventContainer);
+    });
 }
-
-
-
+  
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    // Verifica se o token de autenticação existe no localStorage
+    const authToken = localStorage.getItem('authToken');
+  
+    if (authToken) {
+        // Se o usuário está logado (authToken existe), chama a função loadEvents
+        loadEvents();
+        loadUserInfo();
+    } 
+  });
+  
+  
+  async function loadUserInfo() {
+    // Obtém o token de autenticação do localStorage
+    const token = localStorage.getItem('authToken');
+    console.log(localStorage.getItem('authToken'));
+  
+    if (!token) {
+        console.error('Token de autenticação não encontrado.');
+        return;
+    }
+  
+    try {
+        // Faz a chamada à API para obter as informações do usuário
+        const response = await fetch("http://localhost:3000/getUserInfo", {
+            method: 'GET',
+            headers: {
+                'token': token, // Token sem prefixo "Bearer"
+            },
+        });
+  
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Falha ao carregar informações do usuário: ${errorText}`);
+        }
+  
+        // Obtém os dados da resposta e os insere nos elementos HTML
+        const data = await response.json();
+        console.log(data);
+        document.getElementById("userName").textContent = data.name || "N/A";
+        document.getElementById("userEmail").textContent = data.email || "N/A";
+        document.getElementById("userBalance").textContent = `R$ ${data.balance.toFixed(2)}` || "N/A";
+    } catch (error) {
+        console.error("Erro ao carregar informações do usuário:", error);
+    }
+  }
+  
+  function showErrorMessage(message) {
+      var mb = document.getElementById("messageBox");
+      document.getElementById("message").innerHTML = message;
+      mb.style.display = "block";
+      mb.style.backgroundColor = "red";
+  }
+  
+  function showSucessMessage(message) {
+      var mb = document.getElementById("messageBox");
+      document.getElementById("message").innerHTML = message;
+      mb.style.display = "block";
+      mb.style.backgroundColor = "green";
+  }
+  
+  function hideErrorMessage() {
+      var mb = document.getElementById("messageBox");
+      mb.style.display = "none";
+  }
+  
+  function isValidBet(selectedOption, betAmount) {
+      let valid = false;
+  
+      // Remove espaços extras
+      selectedOption = selectedOption;
+      betAmount = betAmount;
+  
+      // Validação
+      if (selectedOption && betAmount) {
+          valid = true;
+      } else if (!selectedOption && !betAmount) {
+          // Caso nenhum campo tenha sido preenchido
+          showErrorMessage("Por favor, selecione 'Sim' ou 'Não' e insira um valor para a aposta.");
+      } else {
+          // Verifica qual campo está vazio
+          if (!selectedOption) {
+              showErrorMessage("Por favor, selecione 'Sim' ou 'Não' para a aposta.");
+          } else if (!betAmount) {
+              showErrorMessage("Por favor, insira um valor válido para a aposta.");
+          }
+      }
+  
+      console.info("Opção Selecionada:", selectedOption);
+      console.info("Valor da Aposta:", betAmount);
+  
+      return valid;
+  }
+  
+  
+  async function performBet() {
+      const token = localStorage.getItem('authToken');
+      var eventID = betButtonId;
+      var value = document.getElementById('betAmount').value;
+      var betOption = selectedOption;
+  
+      console.log(token);
+      console.log(eventID);
+      console.log(value);
+      console.log(betOption);
+  
+      if (isValidBet(betOption, value)) {
+          try {
+              const response = await fetch("http://localhost:3000/betOnEvent", {
+                  method: 'PUT',
+                  headers: {
+                      'accountToken': token,
+                      'eventID': eventID,
+                      'value': value,
+                      'betOption': betOption,
+                  }
+              });
+  
+              if (!response.ok) {
+                  const errorText = await response.text(); // Lê como texto
+                  showErrorMessage(errorText);
+                  throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
+              }
+  
+              const resultText = await response.text(); // Lê a resposta como texto
+              console.info(`Resposta: ${resultText}`); // Aqui você pode obter a resposta do backend
+  
+              // Exibe a mensagem de sucesso após o cadastro
+              showSucessMessage("Aposta realizada com sucesso!");
+  
+              setTimeout(() => {
+                  window.location.href = "../home_page/";
+              }, 2000);
+          } catch (error) {
+              console.error('Erro ao realizar login:', error);
+          }
+      }
+  }
