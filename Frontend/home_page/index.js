@@ -43,29 +43,64 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 });
 
+let loadedEvents = [];
+let isSortedByBets = false;
+
 async function loadEvents() {
-  const status = 'Approved';
-  const date = 'Future';
+    const status = 'Approved';
+    const date = 'Future';
 
-  try {
-      const response = await fetch(`http://localhost:3000/getEvents?status=${status}&date=${date}`, {
-          method: 'GET',
-      });
+    try {
+        const response = await fetch(`http://localhost:3000/getEvents?status=${status}&date=${date}`, {
+            method: 'GET',
+        });
 
-      if (!response.ok) throw new Error("Falha ao carregar eventos");
+        if (!response.ok) throw new Error("Falha ao carregar eventos");
 
-      const data = await response.json();
-      console.log(data);  // Exibe os dados para depuração
+        const data = await response.json();
+        console.log(data); // Exibe os dados para depuração
 
-      if (data.events && data.events.length > 0) {
-          displayEvents(data.events);  // Exibe os eventos na interface
-      } else {
-          console.log('Nenhum evento encontrado.');
-      }
-  } catch (error) {
-      console.error("Erro ao carregar eventos:", error);
-  }
+        if (data.events && data.events.length > 0) {
+            loadedEvents = data.events; // Armazena os eventos carregados
+            displayEvents(loadedEvents); // Exibe os eventos normalmente
+        } else {
+            console.log('Nenhum evento encontrado.');
+        }
+    } catch (error) {
+        console.error("Erro ao carregar eventos:", error);
+    }
 }
+
+// Função para ordenar eventos por TOTAL_BETS
+function sortEventsByBets(events) {
+    return events.sort((a, b) => b.TOTAL_BETS - a.TOTAL_BETS);
+}
+
+// Função para alternar entre eventos ordenados e não ordenados
+function toggleEventOrder() {
+    const button = document.getElementById("sort-by-bets");
+
+    if (isSortedByBets) {
+        // Se já estiver ordenado, volta à ordem original
+        displayEvents(loadedEvents);
+        // Remove a classe que torna o botão azul
+        button.classList.remove("btn-primary");
+        button.classList.add("btn-secondary");
+    } else {
+        // Se não estiver ordenado, ordena os eventos
+        const sortedEvents = sortEventsByBets([...loadedEvents]);
+        displayEvents(sortedEvents);
+        // Altera a classe do botão para azul
+        button.classList.remove("btn-secondary");
+        button.classList.add("btn-primary");
+    }
+
+    // Alterna o estado da ordenação
+    isSortedByBets = !isSortedByBets;
+}
+
+// Adiciona evento ao botão para alternar a ordenação
+document.getElementById("sort-by-bets").addEventListener("click", toggleEventOrder);
 
 async function loadEventsSearch(word) {
     const keyword = word;
@@ -192,39 +227,26 @@ function displayEvents(events) {
       eventContainer.classList.add("events-container");
 
       // Preenche o container com o conteúdo do evento
-      if(event.STATUS != "Approved"){
-        eventContainer.innerHTML = `
-                <div class="card-body text-center activity-card card w-100 mb-3">
-                <h3>${event.TITLE}</h3>
-                <p>${event.DESCRIPTION}</p>
-                <p>Status: ${event.STATUS}</p>
-                <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleDateString()}</p>
-                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleDateString()}</p>
-                </div>
-        `;
-      } else {
-        eventContainer.innerHTML = `
-                <div class="card-body text-center activity-card card w-100 mb-3">
-                <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
-                <p>${event.DESCRIPTION}</p>
-                <p>Status: ${event.STATUS}</p>
-                <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleDateString()}</p>
-                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleDateString()}</p>
-                <p>
-                 ${
-                event.TOTAL_BETS === 0 
-                ? 'Seja o primeiro a apostar!' 
-                : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'pessoas já apostaram!' : 'pessoa já apostou!'}`
-                }
-                </p>
-                <div class="bet-container mt-3">
-                    <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
-                </div>
-                </div>
-        `;
-      }
+      eventContainer.innerHTML = `
+      <div class="card-body text-center activity-card card w-100 mb-3">
+          <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
+          <p>${event.DESCRIPTION}</p>
+          <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+          <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+          <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+          <p>
+              ${
+                  event.TOTAL_BETS === 0 
+                  ? 'Seja o primeiro a apostar!' 
+                  : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
+              }
+          </p>
+          <div class="bet-container mt-3">
+              <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
+          </div>
+      </div>
+  `;
+  
     
     
       // Adiciona o container do evento ao mainContainer
