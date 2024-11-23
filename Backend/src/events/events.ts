@@ -78,31 +78,34 @@ export namespace EventsHandler{
         let connection;
         try {
 
-            if (await validateCategory(newEvent.category)) {
-                connection = await getOracleConnection();
-                await connection.execute(
-                    'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
-                    [
-                        newEvent.creatorID, newEvent.title, newEvent.description,
-                        newEvent.category, newEvent.status, newEvent.rightResponse,
-                        newEvent.eventDate, newEvent.startDate, newEvent.endDate
-                    ]
-                );
-                await connection.commit();
-
-                const addedEvent = await connection.execute<EventRow>(
-                    'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
-                    [newEvent.creatorID, newEvent.title]
-                );
-                await connection.close();
-
-                if (addedEvent.rows && addedEvent.rows.length > 0) {
-                    console.dir("ID Novo Evento: ");
-                    console.dir(addedEvent.rows[addedEvent.rows.length-1]);
-                    const addedEventID = addedEvent.rows[addedEvent.rows.length - 1].EVENT_ID;
-                    return addedEventID;
-                }
+            if (!(await validateCategory(newEvent.category))) {
+                return undefined;
             }
+
+            connection = await getOracleConnection();
+            await connection.execute(
+                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
+                [
+                    newEvent.creatorID, newEvent.title, newEvent.description,
+                    newEvent.category, newEvent.status, newEvent.rightResponse,
+                    newEvent.eventDate, newEvent.startDate, newEvent.endDate
+                ]
+            );
+            await connection.commit();
+
+            const addedEvent = await connection.execute<EventRow>(
+                'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
+                [newEvent.creatorID, newEvent.title]
+            );
+            await connection.close();
+
+            if (addedEvent.rows && addedEvent.rows.length > 0) {
+                console.dir("ID Novo Evento: ");
+                console.dir(addedEvent.rows[addedEvent.rows.length-1]);
+                const addedEventID = addedEvent.rows[addedEvent.rows.length - 1].EVENT_ID;
+                return addedEventID;
+            }
+            
         } catch (error) {
             console.error("Erro ao salvar evento:", error);
         }
@@ -270,7 +273,7 @@ export namespace EventsHandler{
         try {
             const userID = await AccountsHandler.getUserID(userToken);
     
-            if (!userID) return 2; // parâmetros inválidos
+            if (!userID) return 403; // parâmetros inválidos
     
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
             connection = await getOracleConnection();
@@ -303,19 +306,19 @@ export namespace EventsHandler{
     
                     if (updateConfirmation.rows && updateConfirmation.rows.length > 0) {
                         console.dir(updateConfirmation.rows[0]);
-                        return 0; // sucesso
+                        return 200; // sucesso
                     }
-                    return 1; // falha no update
+                    return 500; // falha no update
                 }
             } finally {
                 await connection.close();
             }
         } catch (error) {
             console.error('Erro ao deletar evento:', error);
-            return 3; // erro inesperado
+            return 500; // erro inesperado
         }
     
-        return 2; // parâmetros inválidos
+        return 400; // parâmetros inválidos
     }
 
     export const deleteEventHandler: RequestHandler = async(req: Request, res: Response) =>{
@@ -325,18 +328,21 @@ export namespace EventsHandler{
         if (eCreatorToken && eEventID){
             const deletionResult: number = await deleteEvent(eCreatorToken, eEventID);
 
-            if(deletionResult === 0){
+            if(deletionResult === 200){
                 res.statusCode = 200;
                 res.send('Evento deletado com sucesso');
 
-            }else if(deletionResult === 1){
+            }else if(deletionResult === 500){
                 res.statusCode = 500;
                 res.send('Servidor falhou em deletar o evento');
 
-            }else{
+            }else if(deletionResult === 403){
                 res.statusCode = 403;
                 res.send('Usuário não tem permissão para alterar o evento');
 
+            }else{
+                res.statusCode = 400;
+                res.send("Parâmetros inválidos");
             }
         } else {
             res.statusCode = 400;

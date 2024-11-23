@@ -157,13 +157,13 @@ export namespace TransactionsHandler{
             const currdate = new Date();
     
             if (!accountID) {
-                return 2;
+                return 400;
             }
     
             const creditCardID = await registerCreditCard(creditCard);
     
             if (!creditCardID) {
-                return 1;
+                return 400;
             }
     
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
@@ -180,7 +180,7 @@ export namespace TransactionsHandler{
             );
             await connection.commit();
     
-            return 0;
+            return 200;
     
         } catch (error) {
             console.error('Erro ao adicionar fundos:', error);
@@ -208,10 +208,10 @@ export namespace TransactionsHandler{
             }
 
             const result = await addFunds(tAccountToken, tValue, creditCard);
-            if (result === 0){
+            if (result === 200){
                 res.statusCode = 200;
                 res.send("Fundos adicionados com sucesso!");
-            }else if(result === 1){
+            }else if(result === 500){
                 res.statusCode = 500;
                 res.send("Falha ao realizar a ação");
             }else {
@@ -354,22 +354,22 @@ export namespace TransactionsHandler{
 
     async function withdrawFunds(accountToken: string, value: number, pix: Pix | undefined, bankAccount: BankAccount | undefined): Promise<number> {
         if (value <= 0 || value > 101000) {
-            return 1; // Erro de valor inválido
+            return 400; // Erro de valor inválido
         }
     
         const accountID = await AccountsHandler.getUserID(accountToken);
         if (!accountID) {
-            return 1; // Erro ao obter o ID da conta
+            return 400; // Erro ao obter o ID da conta
         }
     
         const validWalletCredit = await verifyWalletCredit(accountID, value);
         if (!validWalletCredit) {
-            return 2; // Erro: saldo insuficiente
+            return 409; // Erro: saldo insuficiente
         }
     
         const validDailyQuota = await verifyWithdrawQuota(accountID, value);
         if (!validDailyQuota) {
-            return 3; // Erro: excedeu a cota diária
+            return 429; // Erro: excedeu a cota diária
         }
     
         const withdrawTax = await WithdrawTax(value);
@@ -451,13 +451,13 @@ export namespace TransactionsHandler{
             if (result === 0){
                 res.statusCode = 200;
                 res.send("Dinheiro sacado com sucesso.");
-            } else if(result === 1){
+            } else if(result === 400){
                 res.statusCode = 400;
                 res.send("Parâmetros inválidos.");
-            }else if(result === 2){
+            }else if(result === 409){
                 res.statusCode = 409;
                 res.send("Saldo Insufuciente.");
-            } else if(result === 3){
+            } else if(result === 429){
                 res.statusCode = 429;
                 res.send("Limite de saque excedido.");
             }
@@ -481,13 +481,13 @@ export namespace TransactionsHandler{
             );
     
             if (!validEvent.rows?.[0]?.EVENT_ID) {
-                return 1;
+                return 400;
             }
     
             const validWallet = await verifyWalletCredit(bet.ACCOUNT_ID, bet.VALUE);
     
             if (!validWallet) {
-                return 2;
+                return 402;
             }
     
             await debitFromWallet(bet.ACCOUNT_ID, bet.VALUE);
@@ -497,7 +497,7 @@ export namespace TransactionsHandler{
             );
             await connection.commit();
     
-            return 0;
+            return 200;
     
         } catch (error) {
             console.error('Erro ao realizar aposta no evento:', error);
@@ -528,15 +528,18 @@ export namespace TransactionsHandler{
                     BET_OPTION: tBetOption.toLowerCase()
                 }
                 const result = await betOnEvent(newBet);
-                if(result === 0){
+                if(result === 200){
                     res.statusCode = 200;
                     res.send("Aposta registrada com sucesso.");
-                }else if(result === 1){
+                }else if(result === 400){
                     res.statusCode = 400;
                     res.send("Evento Invalido.");
-                }else if(result === 2){
+                }else if(result === 402){
                     res.statusCode = 402;
                     res.send("Saldo insuficiente.");
+                }else {
+                    res.statusCode = 500;
+                    res.send("Erro ao realizar a aposta.")
                 }
 
             }else if(userRole === "admin"){
@@ -598,7 +601,7 @@ export namespace TransactionsHandler{
             );
     
             if (!winningBetsResult.rows?.[0]?.ACCOUNT_ID || !totalBets.rows?.[0]?.VALUE) {
-                return 0;
+                return 200;
             }
     
             let totalBetValue = 0;
@@ -634,7 +637,7 @@ export namespace TransactionsHandler{
             }
     
             await connection.commit();
-            return 0;
+            return 200;
     
         } catch (error) {
             console.error('Erro ao finalizar evento:', error);
@@ -652,7 +655,7 @@ export namespace TransactionsHandler{
         if (tAdmToken && tEventID && tVerdict){
             const finishEventResult = await finishEvent(tAdmToken, tEventID, tVerdict);
 
-            if(finishEventResult === 0){
+            if(finishEventResult === 200){
                 res.statusCode = 200;
                 res.send("Evento finalizado com sucesso. Os fundos foram distribuídos.");
             }else if(finishEventResult === 403){
@@ -661,7 +664,10 @@ export namespace TransactionsHandler{
             }else if(finishEventResult === 404){
                 res.statusCode = 404;
                 res.send("Evento não encontrado.");
-            }else{
+            }else if(finishEventResult === 500){
+                res.statusCode = 500;
+                res.send("Erro ao finalizar o evento.");
+            }else {
                 res.statusCode = 400;
                 res.send("Parâmetros inválidos.");
             }
