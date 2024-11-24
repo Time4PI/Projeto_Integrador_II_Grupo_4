@@ -81,5 +81,13 @@ async function submitEvent() {
     }
 }
 
+function updateCharacterCount() {
+    const textarea = document.getElementById('description');
+    const charCounter = document.getElementById('charCounter');
+    const maxLength = 150;
+    const remaining = maxLength - textarea.value.length;
+
+    charCounter.textContent = `${remaining} caracteres restantes`;
+}
 
 

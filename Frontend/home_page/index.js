@@ -48,7 +48,10 @@ function signOut() {
       if(sortDateButton) sortDateButton.style.display = 'none';
   }
   });
-  
+
+
+// eventos
+
 let loadedEvents = [];
 let filteredEvents = [];  // Variável para armazenar os eventos filtrados pela pesquisa
 let isSortedByBets = false;
@@ -96,14 +99,27 @@ function toggleEventOrder() {
     const button = document.getElementById("sort-by-bets");
     const buttonDate = document.getElementById("sort-by-end-date");
 
+    let eventsToDisplay = loadedEvents;
+
+    if (chosenCategory) {
+        eventsToDisplay = filteredEvents.filter(event => event.CATEGORY === chosenCategory);
+    }
+
+    if (currentSearchText.trim() !== "") {
+        eventsToDisplay = eventsToDisplay.filter(event => 
+            event.TITLE.toLowerCase().includes(currentSearchText.toLowerCase()) || 
+            event.DESCRIPTION.toLowerCase().includes(currentSearchText.toLowerCase())
+        );
+    }
+
     if (isSortedByBets) {
         // Se já estiver ordenado, volta à ordem original
-        displayEvents(filteredEvents.length > 0 ? filteredEvents : loadedEvents);
+        displayEvents(eventsToDisplay);
         button.classList.remove("btn-primary");
         button.classList.add("btn-secondary");
     } else {
         // Se não estiver ordenado, ordena os eventos
-        const sortedEvents = sortEventsByBets([...filteredEvents.length > 0 ? filteredEvents : loadedEvents]);
+        const sortedEvents = sortEventsByBets([...eventsToDisplay]);
         displayEvents(sortedEvents);
         button.classList.remove("btn-secondary");
         button.classList.add("btn-primary");
@@ -124,7 +140,18 @@ function toggleSortByEndDate() {
     const buttonBet = document.getElementById("sort-by-bets");
 
     // Verifica se a pesquisa está ativa
-    const eventsToDisplay = currentSearchText.trim() === "" ? loadedEvents : filteredEvents;
+    let eventsToDisplay = currentSearchText.trim() === "" ? loadedEvents : filteredEvents;
+
+    if (chosenCategory) {
+        eventsToDisplay = filteredEvents.filter(event => event.CATEGORY === chosenCategory);
+    }
+
+    if (currentSearchText.trim() !== "") {
+        eventsToDisplay = eventsToDisplay.filter(event => 
+            event.TITLE.toLowerCase().includes(currentSearchText.toLowerCase()) || 
+            event.DESCRIPTION.toLowerCase().includes(currentSearchText.toLowerCase())
+        );
+    }
 
     if (isSortedByEndDate) {
         // Se já estiver ordenado, volta à ordem original
@@ -173,8 +200,9 @@ document.getElementById("sort-by-bets").addEventListener("click", toggleEventOrd
 async function loadEventsSearch(word) {
     const keyword = word.trim();
     const token = localStorage.getItem('authToken');
-    currentSearchText = keyword; // Atualiza a variável de pesquisa
-    if(token){
+    let filteredEvents = [];
+    
+    if (token) {
         try {
             const response = await fetch(`http://localhost:3000/searchEvent`, {
                 method: 'GET',
@@ -191,10 +219,16 @@ async function loadEventsSearch(word) {
             if (data.events && data.events.length > 0) {
                 filteredEvents = data.events; // Armazena os eventos filtrados pela pesquisa
 
+                // Se uma categoria foi escolhida, filtra os eventos pela categoria também
+                if (chosenCategory) {
+                    filteredEvents = filteredEvents.filter(event => event.CATEGORY === chosenCategory);
+                }
+
                 // Se o filtro de ordenação estiver ativado, ordena os eventos
                 if (isSortedByBets) {
                     filteredEvents = sortEventsByBets(filteredEvents); // Ordena os eventos por TOTAL_BETS
                 }
+
                 if (isSortedByEndDate) {
                     filteredEvents = sortEventsByEndDate(filteredEvents); // Ordena os eventos pela proximidade da data de fim
                 }
@@ -202,24 +236,200 @@ async function loadEventsSearch(word) {
                 displayEvents(filteredEvents);  // Exibe os eventos na interface
             } else {
                 console.log('Nenhum evento encontrado.');
+                displayEvents([]);  // Exibe uma mensagem ou mantém o container vazio
             }
         } catch (error) {
             console.error("Erro ao carregar eventos:", error);
         }
     }
 }
+
 // Captura o campo de entrada
 const searchBar = document.getElementById("searchBar");
 
+let chosenCategory;
+const fenomenosButton = document.getElementById('fenomenos');
+const eleicoesButton = document.getElementById('eleicoes');
+const financeiroButton = document.getElementById('financeiro');
+const esportesButton = document.getElementById('esportes');
+const todosButton = document.getElementById('todos');
+
+// Mapear os botões para suas categorias
+const buttons = {
+    1: fenomenosButton,
+    2: eleicoesButton,
+    3: financeiroButton,
+    4: esportesButton
+};
+
+// Adicionar o botão "todos" fora do objeto de categorias
+
+function filterEvents(categoryId) {
+    let filteredEvents = loadedEvents;
+
+    // Filtra os eventos pela categoria
+    if (categoryId) {
+        filteredEvents = filteredEvents.filter(event => event.CATEGORY === categoryId);
+    }
+
+    // Aplica o filtro de pesquisa
+    if (currentSearchText.trim() !== "") {
+        filteredEvents = filteredEvents.filter(event => 
+            event.TITLE.toLowerCase().includes(currentSearchText.toLowerCase()) || 
+            event.DESCRIPTION.toLowerCase().includes(currentSearchText.toLowerCase())
+        );
+    }
+
+    // Atualiza os estilos dos botões
+    updateButtonStyles(categoryId);
+
+    // Aplica a ordenação por apostas, se selecionado
+    if (isSortedByBets) {
+        filteredEvents = sortEventsByBets(filteredEvents);
+    }
+
+    // Aplica a ordenação por data, se selecionado
+    if (isSortedByEndDate) {
+        filteredEvents = sortEventsByEndDate(filteredEvents);
+    }
+
+    // Exibe os eventos após o filtro e ordenação
+    displayEvents(filteredEvents);
+    chosenCategory = categoryId;
+    return filteredEvents;
+}
+
+
+// Função para atualizar os estilos dos botões
+function updateButtonStyles(categoryId) {
+    // Primeiramente, remove a classe "btn-success" de todos os botões de categoria e adiciona "btn-secondary"
+    Object.values(buttons).forEach(button => {
+        button.classList.remove("btn-success");
+        button.classList.add("btn-secondary");
+    });
+
+    // Também desmarca o botão "Todos"
+    todosButton.classList.remove("btn-success");
+    todosButton.classList.add("btn-secondary");
+
+    // Adiciona a classe "btn-success" ao botão correspondente à categoria
+    if (buttons[categoryId]) {
+        buttons[categoryId].classList.add("btn-success");
+        buttons[categoryId].classList.remove("btn-secondary");
+    }
+}
+
+// Função para mostrar todos os eventos
+function showAllEvents() {
+    if(currentSearchText.trim()){
+        loadEventsSearch(currentSearchText);
+    }else{
+        displayEvents(loadedEvents);
+    }
+    // Desmarcar todos os botões de categoria
+    Object.values(buttons).forEach(button => {
+        button.classList.remove("btn-success");
+        button.classList.add("btn-secondary");
+    });
+
+    // Marca o botão "Todos"
+    todosButton.classList.remove("btn-secondary");
+    todosButton.classList.add("btn-success");
+
+    chosenCategory = null;
+}
+
+  function displayEvents(events) {
+    // Seleciona o elemento pai onde os containers de eventos serão adicionados
+    const token = localStorage.getItem('authToken');
+    const mainContainer = document.getElementById("main-events-container");
+
+    // Limpa o container antes de adicionar novos eventos
+    mainContainer.innerHTML = "";
+    if(token){
+        const currentDate = new Date();
+        // Verifica se há eventos para exibir
+        if (!events || events.length === 0) {
+            mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
+            return;
+        }
+
+        // Cria um novo container para cada evento e insere no mainContainer
+        events.forEach(event => {
+            // Cria um novo elemento que representa o container de um evento
+            const eventContainer = document.createElement("div");
+            eventContainer.classList.add("events-container");
+
+            const categoryMap = {
+                1: "Fenômenos Naturais",
+                2: "Política",
+                3: "Mercado Financeiro",
+                4: "Esportes"
+            };
+
+            // Preenche o container com o conteúdo do evento
+            eventContainer.innerHTML = `
+            <div class="card-body text-center activity-card card w-100 mb-3">
+                <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
+                <p>${event.DESCRIPTION}</p>
+                <p>Categoria: ${categoryMap[event.CATEGORY]}</p>
+                <p>Data de Acontecimento do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
+                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+            </div>
+        `;
+            // Verifica se a data atual está dentro do período de apostas
+            if (currentDate >= new Date(event.START_DATE)) {
+                // Cria o botão "Apostar"
+                const buttonContainer = document.createElement("div");
+                buttonContainer.classList.add("bet-container", "mt-3");
+                buttonContainer.innerHTML = `
+                    <p>
+                        ${
+                            event.TOTAL_BETS === 0 
+                            ? 'Seja o primeiro a apostar!' 
+                            : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
+                        }
+                    </p>
+                    <button class="btn btn-primary w-100" 
+                            onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" 
+                            id="${event.EVENT_ID}">
+                        Apostar
+                    </button>
+                `;
+                eventContainer.querySelector('.card-body').appendChild(buttonContainer);
+            } else {
+                // Adiciona a mensagem "As apostas ainda não foram abertas"
+                const messageContainer = document.createElement("p");
+                messageContainer.classList.add("text-warning", "mt-3");
+                messageContainer.textContent = "Aguarde o início das apostas.";
+                eventContainer.querySelector('.card-body').appendChild(messageContainer);
+            }
+            
+            // Adiciona o container do evento ao mainContainer
+            mainContainer.appendChild(eventContainer);
+        });
+    }
+}
+
 // Adiciona um listener ao campo de entrada para capturar o texto digitado em tempo real
 searchBar.addEventListener("input", () => {
-    const searchText = searchBar.value;
-    if (searchText.trim() === "") {
+    currentSearchText = searchBar.value;
+    if (currentSearchText.trim() === "") {
         // Se a pesquisa estiver vazia, exibe todos os eventos
         filteredEvents = loadedEvents;
+        if (chosenCategory) {
+            filteredEvents = filteredEvents.filter(event => event.CATEGORY === chosenCategory);
+        }
+        if (isSortedByBets) {
+            filteredEvents = sortEventsByBets(filteredEvents); // Ordena os eventos por TOTAL_BETS
+        }
+        if (isSortedByEndDate) {
+            filteredEvents = sortEventsByEndDate(filteredEvents); // Ordena os eventos pela proximidade da data de fim
+        }
         displayEvents(filteredEvents);
     } else {
-        loadEventsSearch(searchText);  // Realiza a pesquisa e exibe os eventos encontrados
+        loadEventsSearch(currentSearchText);  // Realiza a pesquisa e exibe os eventos encontrados
     }
 });
   
@@ -287,55 +497,7 @@ searchBar.addEventListener("input", () => {
   
       noButton.classList.add("selected");
       yesButton.classList.remove("selected");
-  });
-  
-  function displayEvents(events) {
-    // Seleciona o elemento pai onde os containers de eventos serão adicionados
-    const token = localStorage.getItem('authToken');
-    const mainContainer = document.getElementById("main-events-container");
-
-    // Limpa o container antes de adicionar novos eventos
-    mainContainer.innerHTML = "";
-    if(token){
-        // Verifica se há eventos para exibir
-        if (!events || events.length === 0) {
-            mainContainer.innerHTML = "<p>Nenhum evento encontrado.</p>";
-            return;
-        }
-
-        // Cria um novo container para cada evento e insere no mainContainer
-        events.forEach(event => {
-            // Cria um novo elemento que representa o container de um evento
-            const eventContainer = document.createElement("div");
-            eventContainer.classList.add("events-container");
-
-            // Preenche o container com o conteúdo do evento
-            eventContainer.innerHTML = `
-            <div class="card-body text-center activity-card card w-100 mb-3">
-                <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
-                <p>${event.DESCRIPTION}</p>
-                <p>Data do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
-                <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                <p>
-                    ${
-                        event.TOTAL_BETS === 0 
-                        ? 'Seja o primeiro a apostar!' 
-                        : `${event.TOTAL_BETS} ${event.TOTAL_BETS > 1 ? 'apostas realizadas!' : 'aposta realizada!'}` 
-                    }
-                </p>
-                <div class="bet-container mt-3">
-                    <button class="btn btn-primary w-100" onclick="openBetModal(this.id, document.getElementById('betName' + this.id).innerText)" id="${event.EVENT_ID}">Apostar</button>
-                </div>
-            </div>
-        `;
-            
-            // Adiciona o container do evento ao mainContainer
-            mainContainer.appendChild(eventContainer);
-        });
-    }
-}
-  
+  });  
   
   document.addEventListener("DOMContentLoaded", () => {
     // Verifica se o token de autenticação existe no localStorage
@@ -475,3 +637,4 @@ searchBar.addEventListener("input", () => {
           }
       }
   }
+

@@ -17,17 +17,18 @@
             <form>
                 <label for="title">Título</label>
                 <input type="text" id="title" name="title" onfocus="hideErrorMessage()" placeholder="Coloque o título do evento" required>
-
-                <label for="description">Descrição</label>
-                <textarea id="description" name="description" onfocus="hideErrorMessage()" placeholder="Coloque a descrição do evento" rows="4" required></textarea>
+                
+                <label for="description">Descrição  <p id="charCounter" style="color: #868686"></p> </label>
+                <textarea id="description" name="description" oninput="updateCharacterCount()"  onfocus="hideErrorMessage()" placeholder="Coloque a descrição do evento (máx. 150 caracteres)" rows="4" required></textarea>
+                
 
                 <label for="category">Categoria</label>
                 <select id="category" name="category" required onfocus="hideErrorMessage()">
                     <option value="">Selecione uma categoria</option>
-                    <option value="Fenômenos Naturais">Fenômenos Naturais</option>
-                    <option value="Política">Política</option>
-                    <option value="Bolsa de Valores">Bolsa de Valores</option>
-                    <option value="Esportes">Esportes</option>
+                    <option value="1">Fenômenos Naturais</option>
+                    <option value="2">Política</option>
+                    <option value="3">Mercado Financeiro</option>
+                    <option value="4">Esportes</option>
                 </select>
 
                 <label for="eventDate">Data de Acontecimento do Evento</label>

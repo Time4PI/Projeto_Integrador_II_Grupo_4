@@ -70,19 +70,21 @@
                     <button class="btn btn-secondary  m-2" data-filter="mais-apostados" id="sort-by-bets">Eventos mais apostados</button>
                 </div>
                 <div class="categories d-flex justify-content-center flex-wrap mt-3">
-                    <button class="btn btn-secondary m-2" data-category="catastrofes">
+                    <button class="btn btn-secondary m-2" id="fenomenos" onclick="filterEvents(1)">
                         Fenômenos Naturais
                     </button>
-                    <button class="btn btn-secondary m-2" data-category="eleicoes">
+                    <button class="btn btn-secondary m-2" id="eleicoes" onclick="filterEvents(2)">
                         Política
                     </button>
-                    <button class="btn btn-secondary m-2" data-category="bolsa-valores">
-                        Bolsa de Valores
+                    <button class="btn btn-secondary m-2" id="financeiro" onclick="filterEvents(3)">
+                        Mercado Financeiro
                     </button>
-                    <button class="btn btn-secondary m-2" data-category="bolsa-valores">
+                    <button class="btn btn-secondary m-2" id="esportes" onclick="filterEvents(4)">
                         Esportes
                     </button>
-
+                    <button class="btn btn-success m-2" id="todos" onclick="showAllEvents()">
+                        Todos
+                    </button>
                 </div>
 
                 <!-- Activity List -->
