@@ -542,7 +542,7 @@ export namespace EventsHandler{
                 res.json(response);
 
             }else {
-                res.statusCode = 404;
+                res.statusCode = 204;
                 res.send("Não existem eventos correspondentes");
             }
 
