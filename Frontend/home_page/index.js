@@ -729,7 +729,6 @@ async function performEvaluation() {
         'reason': reasons.join(", ")
     };
 
-    console.log(headers);
     try {
         const response = await fetch("http://localhost:3000/evaluateNewEvent", {
             method: 'PUT',
@@ -790,7 +789,11 @@ async function loadUserInfo() {
         const data = await response.json();
         document.getElementById("userName").textContent = data.name || "N/A";
         document.getElementById("userEmail").textContent = data.email || "N/A";
-        document.getElementById("userBalance").textContent = `R$ ${data.balance.toFixed(2)}` || "N/A";
+        if(localStorage.getItem('role') == 'admin'){
+            document.getElementById("userBalance").textContent = "N/A";
+        }else{
+            document.getElementById("userBalance").textContent = `R$ ${data.balance.toFixed(2)}` || "N/A";
+        }
         localStorage.setItem('role', data.role);
         
         if (localStorage.getItem('role') === 'admin' && !localStorage.getItem('hasReloaded')) {

@@ -52,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function signOut() {
     localStorage.removeItem('authToken'); // Remove o token de autenticação do armazenamento local
     localStorage.removeItem('role');
+    localStorage.removeItem('hasReloaded');
     location.reload(); 
 }
 
