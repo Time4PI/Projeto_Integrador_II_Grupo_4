@@ -91,7 +91,6 @@ async function performWithdraw() {
             throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
         }
 
-        const resultText = await response.text();
         showSucessMessage("Saque realizado com sucesso!")
 
         setTimeout(() => {
