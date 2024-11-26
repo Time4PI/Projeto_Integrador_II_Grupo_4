@@ -39,6 +39,12 @@ export namespace TransactionsHandler{
         KEY: string;
     };
 
+    type AccountStatement = {
+        TRANSACTION_DATE: Date;
+        TRANSACTION_TYPE: string; 
+        AMOUNT: number;
+    };
+
     async function getOracleConnection() {
         try {
             const connection = await OracleDB.getConnection({
@@ -148,15 +154,16 @@ export namespace TransactionsHandler{
         let connection;
         try {
             const accountID = await AccountsHandler.getUserID(accountToken);
+            const currdate = new Date();
     
             if (!accountID) {
-                return 2;
+                return 400;
             }
     
             const creditCardID = await registerCreditCard(creditCard);
     
             if (!creditCardID) {
-                return 1;
+                return 400;
             }
     
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
@@ -168,12 +175,12 @@ export namespace TransactionsHandler{
             );
     
             await connection.execute(
-                'INSERT INTO DEPOSITS VALUES(SEQ_DEPOSIT.NEXTVAL, :accountid, :value, :cardid)',
-                [accountID, value, creditCardID]
+                'INSERT INTO DEPOSITS VALUES(SEQ_DEPOSIT.NEXTVAL, :accountid, :value, :cardid, :depositdate)',
+                [accountID, value, creditCardID, currdate]
             );
             await connection.commit();
     
-            return 0;
+            return 200;
     
         } catch (error) {
             console.error('Erro ao adicionar fundos:', error);
@@ -201,11 +208,10 @@ export namespace TransactionsHandler{
             }
 
             const result = await addFunds(tAccountToken, tValue, creditCard);
-
-            if (result === 0){
+            if (result === 200){
                 res.statusCode = 200;
                 res.send("Fundos adicionados com sucesso!");
-            }else if(result === 1){
+            }else if(result === 500){
                 res.statusCode = 500;
                 res.send("Falha ao realizar a ação");
             }else {
@@ -348,22 +354,22 @@ export namespace TransactionsHandler{
 
     async function withdrawFunds(accountToken: string, value: number, pix: Pix | undefined, bankAccount: BankAccount | undefined): Promise<number> {
         if (value <= 0 || value > 101000) {
-            return 1; // Erro de valor inválido
+            return 400; // Erro de valor inválido
         }
     
         const accountID = await AccountsHandler.getUserID(accountToken);
         if (!accountID) {
-            return 1; // Erro ao obter o ID da conta
+            return 400; // Erro ao obter o ID da conta
         }
     
         const validWalletCredit = await verifyWalletCredit(accountID, value);
         if (!validWalletCredit) {
-            return 2; // Erro: saldo insuficiente
+            return 409; // Erro: saldo insuficiente
         }
     
         const validDailyQuota = await verifyWithdrawQuota(accountID, value);
         if (!validDailyQuota) {
-            return 3; // Erro: excedeu a cota diária
+            return 429; // Erro: excedeu a cota diária
         }
     
         const withdrawTax = await WithdrawTax(value);
@@ -445,13 +451,13 @@ export namespace TransactionsHandler{
             if (result === 0){
                 res.statusCode = 200;
                 res.send("Dinheiro sacado com sucesso.");
-            } else if(result === 1){
+            } else if(result === 400){
                 res.statusCode = 400;
                 res.send("Parâmetros inválidos.");
-            }else if(result === 2){
+            }else if(result === 409){
                 res.statusCode = 409;
                 res.send("Saldo Insufuciente.");
-            } else if(result === 3){
+            } else if(result === 429){
                 res.statusCode = 429;
                 res.send("Limite de saque excedido.");
             }
@@ -475,13 +481,13 @@ export namespace TransactionsHandler{
             );
     
             if (!validEvent.rows?.[0]?.EVENT_ID) {
-                return 1;
+                return 400;
             }
     
             const validWallet = await verifyWalletCredit(bet.ACCOUNT_ID, bet.VALUE);
     
             if (!validWallet) {
-                return 2;
+                return 402;
             }
     
             await debitFromWallet(bet.ACCOUNT_ID, bet.VALUE);
@@ -491,7 +497,7 @@ export namespace TransactionsHandler{
             );
             await connection.commit();
     
-            return 0;
+            return 200;
     
         } catch (error) {
             console.error('Erro ao realizar aposta no evento:', error);
@@ -509,9 +515,11 @@ export namespace TransactionsHandler{
         
         if (tAccountToken && tEventID && tValue && tBetOption &&(tValue>0)){
             const userID = await AccountsHandler.getUserID(tAccountToken);
+            const userRole = await AccountsHandler.getUserRole(tAccountToken);
+
             const currdate = new Date();
 
-            if (userID){
+            if (userID && userRole !== "admin"){
                 const newBet: Bet = {
                     ACCOUNT_ID: userID,
                     EVENT_ID: tEventID,
@@ -520,17 +528,23 @@ export namespace TransactionsHandler{
                     BET_OPTION: tBetOption.toLowerCase()
                 }
                 const result = await betOnEvent(newBet);
-                if(result === 0){
+                if(result === 200){
                     res.statusCode = 200;
                     res.send("Aposta registrada com sucesso.");
-                }else if(result === 1){
+                }else if(result === 400){
                     res.statusCode = 400;
                     res.send("Evento Invalido.");
-                }else if(result === 2){
+                }else if(result === 402){
                     res.statusCode = 402;
                     res.send("Saldo insuficiente.");
+                }else {
+                    res.statusCode = 500;
+                    res.send("Erro ao realizar a aposta.")
                 }
 
+            }else if(userRole === "admin"){
+                res.statusCode = 403;
+                res.send("Admin não tem permissão para apostar.");
             }else {
                 res.statusCode = 400;
                 res.send("Parâmetros inválidos ou faltantes.");
@@ -547,6 +561,7 @@ export namespace TransactionsHandler{
         try {
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
             connection = await getOracleConnection();
+            const currdate = new Date();
     
             if (verdict !== 'sim' && verdict !== 'não') {
                 return 400;
@@ -558,7 +573,7 @@ export namespace TransactionsHandler{
             }
     
             const eventResult = await connection.execute(
-                `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`,
+                `SELECT STATUS FROM EVENTS WHERE EVENT_ID = :eventID AND STATUS = 'Approved'`, //AND EVENT_DATE <= :currdate não coloquei para conseguir testar
                 [eventID]
             );
     
@@ -586,7 +601,7 @@ export namespace TransactionsHandler{
             );
     
             if (!winningBetsResult.rows?.[0]?.ACCOUNT_ID || !totalBets.rows?.[0]?.VALUE) {
-                return 0;
+                return 200;
             }
     
             let totalBetValue = 0;
@@ -616,13 +631,13 @@ export namespace TransactionsHandler{
                 );
 
                 await connection.execute(
-                    'INSERT INTO BET_WINNINGS VALUES(:betid, :accountid, :value)',
-                    [betID, accountID, winningAmount]
+                    'INSERT INTO BET_WINNINGS VALUES(:betid, :accountid, :value, :winningdate)',
+                    [betID, accountID, winningAmount, currdate]
                 );
             }
     
             await connection.commit();
-            return 0;
+            return 200;
     
         } catch (error) {
             console.error('Erro ao finalizar evento:', error);
@@ -640,7 +655,7 @@ export namespace TransactionsHandler{
         if (tAdmToken && tEventID && tVerdict){
             const finishEventResult = await finishEvent(tAdmToken, tEventID, tVerdict);
 
-            if(finishEventResult === 0){
+            if(finishEventResult === 200){
                 res.statusCode = 200;
                 res.send("Evento finalizado com sucesso. Os fundos foram distribuídos.");
             }else if(finishEventResult === 403){
@@ -649,7 +664,10 @@ export namespace TransactionsHandler{
             }else if(finishEventResult === 404){
                 res.statusCode = 404;
                 res.send("Evento não encontrado.");
-            }else{
+            }else if(finishEventResult === 500){
+                res.statusCode = 500;
+                res.send("Erro ao finalizar o evento.");
+            }else {
                 res.statusCode = 400;
                 res.send("Parâmetros inválidos.");
             }
@@ -658,6 +676,80 @@ export namespace TransactionsHandler{
         }else {
             res.statusCode = 400;
             res.send("Parâmetros inválidos ou faltantes.");
+        }
+    }
+
+    async function getAccountStatement(userToken: string):Promise<AccountStatement[] | undefined>{
+        let connection;
+        try {
+            OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
+            connection = await getOracleConnection();
+
+            const userID = await AccountsHandler.getUserID(userToken);
+
+            if(!userID){
+                return undefined;
+            }
+            
+            const userStatement = await connection.execute<AccountStatement>(
+                `SELECT WINNING_DATE AS TRANSACTION_DATE, 'Ganho' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM BET_WINNINGS
+                WHERE ACCOUNT_ID = :userid
+
+                UNION ALL
+
+                SELECT BET_DATE AS TRANSACTION_DATE, 'Aposta' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM BETS
+                WHERE ACCOUNT_ID = :userid
+
+                UNION ALL
+
+                SELECT WITHDRAWAL_DATE AS TRANSACTION_DATE, 'Saque' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM WITHDRAWALS
+                WHERE ACCOUNT_ID = :userid
+
+                UNION ALL
+
+                SELECT DEPOSIT_DATE AS TRANSACTION_DATE, 'Deposito' AS TRANSACTION_TYPE, VALUE AS AMOUNT
+                FROM DEPOSITS
+                WHERE ACCOUNT_ID = :userid
+
+                ORDER BY TRANSACTION_DATE DESC`,
+                {
+                    userid: userID
+                }
+            );
+
+            if(!userStatement.rows?.[0].AMOUNT){
+                return undefined;
+            }
+
+            return userStatement.rows;
+    
+        } catch (error) {
+            console.error('Erro ao obter dados:', error);
+            return undefined;
+        } finally {
+            if (connection) await connection.close();   
+        }
+    }
+
+    export const getAccountStatementHandler: RequestHandler = async(req: Request, res: Response) => {
+        const userToken = req.get('userToken');
+        
+        if(userToken){
+            const userStatement = await getAccountStatement(userToken);
+
+            if(userStatement){
+                res.statusCode = 200;
+                res.json(userStatement);
+            }else{
+                res.statusCode = 404;
+                res.send("Nenhuma transação encontrada");
+            }
+        }else{
+            res.statusCode = 400;
+            res.send("Parametros Faltantes");
         }
     }
 

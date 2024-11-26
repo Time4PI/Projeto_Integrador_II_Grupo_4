@@ -77,31 +77,35 @@ export namespace EventsHandler{
     export async function saveNewEvent(newEvent: Event): Promise<Number | undefined> {
         let connection;
         try {
-            if (await validateCategory(newEvent.category)) {
-                connection = await getOracleConnection();
-                await connection.execute(
-                    'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
-                    [
-                        newEvent.creatorID, newEvent.title, newEvent.description,
-                        newEvent.category, newEvent.status, newEvent.rightResponse,
-                        newEvent.eventDate, newEvent.startDate, newEvent.endDate
-                    ]
-                );
-                await connection.commit();
 
-                const addedEvent = await connection.execute<EventRow>(
-                    'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
-                    [newEvent.creatorID, newEvent.title]
-                );
-                await connection.close();
-
-                if (addedEvent.rows && addedEvent.rows.length > 0) {
-                    console.dir("ID Novo Evento: ");
-                    console.dir(addedEvent.rows[addedEvent.rows.length-1]);
-                    const addedEventID = addedEvent.rows[addedEvent.rows.length - 1].EVENT_ID;
-                    return addedEventID;
-                }
+            if (!(await validateCategory(newEvent.category))) {
+                return undefined;
             }
+
+            connection = await getOracleConnection();
+            await connection.execute(
+                'INSERT INTO EVENTS VALUES(SEQ_EVENTS.NEXTVAL, :CREATOR_ID, :TITLE, :DESCRIPTION, :CATEGORY, :STATUS, :RIGHT_RESPONSE, :EVENTDATE, :START_DATE, :END_DATE)',
+                [
+                    newEvent.creatorID, newEvent.title, newEvent.description,
+                    newEvent.category, newEvent.status, newEvent.rightResponse,
+                    newEvent.eventDate, newEvent.startDate, newEvent.endDate
+                ]
+            );
+            await connection.commit();
+
+            const addedEvent = await connection.execute<EventRow>(
+                'SELECT * FROM EVENTS WHERE CREATOR_ID = :creatorid AND TITLE = :title ORDER BY EVENT_ID ASC',
+                [newEvent.creatorID, newEvent.title]
+            );
+            await connection.close();
+
+            if (addedEvent.rows && addedEvent.rows.length > 0) {
+                console.dir("ID Novo Evento: ");
+                console.dir(addedEvent.rows[addedEvent.rows.length-1]);
+                const addedEventID = addedEvent.rows[addedEvent.rows.length - 1].EVENT_ID;
+                return addedEventID;
+            }
+            
         } catch (error) {
             console.error("Erro ao salvar evento:", error);
         }
@@ -122,11 +126,17 @@ export namespace EventsHandler{
 
         if(eCreatorToken && eTitle && eDescription && eCategory && eEventDate && eStartDate && eStartHour && eEndDate && eEndHour){
             const eCreatorID = await AccountsHandler.getUserID(eCreatorToken);
-            if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID){
+            const userRole = await AccountsHandler.getUserRole(eCreatorToken);
+            const currdate = new Date();
+
+            let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
+            let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
+            let eFullEventDate = new Date(`${eEventDate}T00:00:00`);
+
+            if (eTitle.length <= 50 && eDescription.length <= 150 && eCreatorID && userRole !== "admin"
+                && eFullStartDate > currdate && eFullEndDate > eFullStartDate && eFullEventDate > eFullEndDate
+            ){
                 let eStatus: string = "Pending";
-                let eFullStartDate = new Date (`${eStartDate}T${eStartHour}`);      //ex: "2024-12-25T15:00:00"
-                let eFullEndDate = new Date (`${eEndDate}T${eEndHour}`);                   
-                let eFullEventDate = new Date(`${eEventDate}T00:00:00`);
 
                 console.dir(eFullEndDate);  //depuração
 
@@ -151,6 +161,9 @@ export namespace EventsHandler{
                     res.statusCode = 500; 
                     res.send(`Falha ao adicionar o evento`);
                 }
+            }else if(userRole === "admin"){
+                res.statusCode = 403;
+                res.send("Admin não tem permissão para criar eventos.");
             }else {
                 res.statusCode = 400;
                 res.send("Dados inválidos na requisição.");
@@ -166,33 +179,53 @@ export namespace EventsHandler{
     export async function getFilteredEvents(status: string | undefined, date: string | undefined): Promise<EventRow[] | undefined> {
         let connection;
         try {
-            let baseQuery = 'SELECT * FROM EVENTS WHERE 1 = 1 ';
+            let baseQuery = `
+                SELECT 
+                    E.*, 
+                    NVL(COUNT(B.BET_ID), 0) AS TOTAL_BETS
+                FROM 
+                    EVENTS E
+                LEFT JOIN 
+                    BETS B 
+                ON 
+                    E.EVENT_ID = B.EVENT_ID
+                WHERE 
+                    1 = 1
+            `;
             const queryParams: any[] = [];
             const currDate = new Date();
 
-            if (status != 'Any'){
-                baseQuery += 'AND STATUS = :status ';
+            if (status !== 'Any') {
+                baseQuery += 'AND E.STATUS = :status ';
                 queryParams.push(status);
             }
-    
-            if (date != 'Any'){
-                if (date === 'Future'){
-                    baseQuery += 'AND EVENT_DATE > :currdate ';
+
+            if (date !== 'Any') {
+                if (date === 'Future') {
+                    baseQuery += 'AND E.EVENT_DATE > :currdate ';
                 } else if (date === 'Past') {
-                    baseQuery += 'AND EVENT_DATE < :currdate ';
-    
+                    baseQuery += 'AND E.EVENT_DATE < :currdate ';
                 }
                 queryParams.push(currDate);
             }
 
-            baseQuery += 'ORDER BY EVENT_ID ASC';
+            // Agrupamento e ordenação
+            baseQuery += `
+                GROUP BY 
+                    E.EVENT_ID, E.CREATOR_ID, E.TITLE, E.DESCRIPTION, 
+                    E.CATEGORY, E.STATUS, E.RIGHT_RESPONSE, 
+                    E.EVENT_DATE, E.START_DATE, E.END_DATE
+                ORDER BY 
+                    E.EVENT_ID ASC
+            `;
 
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
 
-            connection = await getOracleConnection();
+            const connection = await getOracleConnection();
 
-            const results = await connection.execute<EventRow>(
-                baseQuery, queryParams
+            const results = await connection.execute<EventRow & { TOTAL_BETS: number }>(
+                baseQuery, 
+                queryParams
             );
 
             await connection.close();
@@ -208,30 +241,31 @@ export namespace EventsHandler{
         }
     }
 
-    export const getEventsHandler: RequestHandler = async (req: Request,  res: Response) =>{
-        const eStatus = req.get('status'); //Valores (Pending, Reproved, Approved, Closed, Deleted) or Any
-        const eDate = req.get('date');    //Respostas esperadas: Future, Past or Any
-
-        if (eStatus && eDate){
-            const fetchedEvents: EventRow[] | undefined = await getFilteredEvents(eStatus, eDate);
-            if (fetchedEvents){
-                res.statusCode = 200;
-                const response = {
-                    mensage: 'Eventos Filtrados: ',
-                    events: fetchedEvents
-                };
-                
-                res.json(response);
+    export const getEventsHandler: RequestHandler = async (req: Request, res: Response) => {
+        try {
+            const eStatus = req.query.status as string;  //Valores (Pending, Reproved, Approved, Closed, Deleted) or Any
+            const eDate = req.query.date as string;      //Respostas esperadas: Future, Past or Any
     
+            if (eStatus && eDate) {
+                const fetchedEvents: EventRow[] | undefined = await getFilteredEvents(eStatus, eDate);
+                if (fetchedEvents) {
+                    res.status(200).json({
+                        mensage: 'Eventos Filtrados: ',
+                        events: fetchedEvents
+                    });
+                } else {
+                    res.status(204).send('Nenhum evento encontrado');
+                }
             } else {
-                res.statusCode = 204;
-                res.send('Nenhum evento encontrado')
+                res.status(400).send("Parâmetros inválidos ou faltantes. Certifique-se de enviar 'status' e 'date'.");
             }
-        } else {
-            res.statusCode = 400;
-            res.send("Parâmetros inválidos ou faltantes."); 
+        } catch (error) {
+            console.error('Erro ao buscar eventos:', error);
+            res.status(500).send('Erro interno no servidor ao buscar eventos');
         }
-    }
+    };
+    
+    
 
 
     async function deleteEvent(userToken: string, eventID: number): Promise<number> {
@@ -239,7 +273,7 @@ export namespace EventsHandler{
         try {
             const userID = await AccountsHandler.getUserID(userToken);
     
-            if (!userID) return 2; // parâmetros inválidos
+            if (!userID) return 403; // parâmetros inválidos
     
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
             connection = await getOracleConnection();
@@ -272,19 +306,19 @@ export namespace EventsHandler{
     
                     if (updateConfirmation.rows && updateConfirmation.rows.length > 0) {
                         console.dir(updateConfirmation.rows[0]);
-                        return 0; // sucesso
+                        return 200; // sucesso
                     }
-                    return 1; // falha no update
+                    return 500; // falha no update
                 }
             } finally {
                 await connection.close();
             }
         } catch (error) {
             console.error('Erro ao deletar evento:', error);
-            return 3; // erro inesperado
+            return 500; // erro inesperado
         }
     
-        return 2; // parâmetros inválidos
+        return 400; // parâmetros inválidos
     }
 
     export const deleteEventHandler: RequestHandler = async(req: Request, res: Response) =>{
@@ -294,18 +328,21 @@ export namespace EventsHandler{
         if (eCreatorToken && eEventID){
             const deletionResult: number = await deleteEvent(eCreatorToken, eEventID);
 
-            if(deletionResult === 0){
+            if(deletionResult === 200){
                 res.statusCode = 200;
                 res.send('Evento deletado com sucesso');
 
-            }else if(deletionResult === 1){
+            }else if(deletionResult === 500){
                 res.statusCode = 500;
                 res.send('Servidor falhou em deletar o evento');
 
-            }else{
+            }else if(deletionResult === 403){
                 res.statusCode = 403;
                 res.send('Usuário não tem permissão para alterar o evento');
 
+            }else{
+                res.statusCode = 400;
+                res.send("Parâmetros inválidos");
             }
         } else {
             res.statusCode = 400;
@@ -447,10 +484,26 @@ export namespace EventsHandler{
                 const currDate: Date = new Date();
                 const searchLine: string = `%${keyword.toLowerCase()}%`;
     
-                const searchResults = await connection.execute<EventRow>(
-                    `SELECT * FROM EVENTS WHERE END_DATE > :currdate AND STATUS = 'Approved' 
-                     AND (LOWER(TITLE) LIKE :searchline OR LOWER(DESCRIPTION) LIKE :searchline)
-                     ORDER BY END_DATE DESC`,
+                const searchResults = await connection.execute<EventRow & { TOTAL_BETS: number }>(
+                    `SELECT 
+                        E.*, 
+                        NVL(COUNT(B.BET_ID), 0) AS TOTAL_BETS
+                    FROM 
+                        EVENTS E
+                    LEFT JOIN 
+                        BETS B
+                    ON 
+                        E.EVENT_ID = B.EVENT_ID
+                    WHERE 
+                        E.END_DATE > :currdate 
+                        AND E.STATUS = 'Approved'
+                        AND (LOWER(E.TITLE) LIKE :searchline OR LOWER(E.DESCRIPTION) LIKE :searchline)
+                    GROUP BY 
+                        E.EVENT_ID, E.CREATOR_ID, E.TITLE, E.DESCRIPTION, 
+                        E.CATEGORY, E.STATUS, E.RIGHT_RESPONSE, 
+                        E.EVENT_DATE, E.START_DATE, E.END_DATE
+                    ORDER BY 
+                        E.END_DATE DESC`,
                     {
                         currdate: currDate,
                         searchline: searchLine
