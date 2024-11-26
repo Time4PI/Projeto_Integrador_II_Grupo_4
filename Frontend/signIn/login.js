@@ -1,3 +1,4 @@
+// Verifica de o email e senha são validos
 function isValid(email, password){
     var valid = false;
     email = email.trim();
@@ -15,33 +16,31 @@ function isValid(email, password){
         // dar um erro dizendo para preencher a senha
         showErrorMessage("Preencha a senha.");
     }
-    console.info(email);
-    console.info(password);
     return valid;
 }
 
+// Exibe uma mensagem de erro
 function showErrorMessage(message){
-    // exibir a mensagem de texto recebida
-    // mostrar a caixa de texto com a mensagem
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
     mb.style.display = "block";
 }
 
+// Exibe uma mensagem de sucesso
 function showSucessMessage(message){
-    // exibir a mensagem de texto recebida
-    // mostrar a caixa de texto com a mensagem
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
     mb.style.display = "block";
     mb.style.backgroundColor = "green";
 }
 
+// Oculta a mensagem de erro
 function hideErrorMessage(){
     var mb = document.getElementById("messageBox");
     mb.style.display = "none";
 }
 
+// Submete os dados do SignIn para a API
 async function performSignIn() {
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
@@ -63,13 +62,11 @@ async function performSignIn() {
             }
 
             const resultText = await response.text(); // Lê a resposta como texto
-            console.info(`Resposta: ${resultText}`); // Aqui você terá a string com o token
 
             // Extrai o token da resposta
             const tokenMatch = resultText.match(/Token\s*:\s*(\w+)/); // Corrigido para corresponder ao formato da resposta
             if (tokenMatch) {
                 const token = tokenMatch[1]; // O token será a primeira captura
-                console.log(`Token recebido: ${token}`);
 
                 // Armazena o token no localStorage (ou sessionStorage)
                 localStorage.setItem('authToken', token); // ou sessionStorage.setItem('authToken', token);

@@ -1,9 +1,11 @@
+// Exibe uma mensagem de erro
 function showErrorMessage(message) {
     const mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
     mb.style.display = "block";
 }
 
+// Exibe uma mensagem de sucesso
 function showSucessMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -11,12 +13,13 @@ function showSucessMessage(message) {
     mb.style.backgroundColor = "green";
 }
 
+// Oculta a mensagem de erro
 function hideErrorMessage() {
     var mb = document.getElementById("messageBox");
     mb.style.display = "none";
 }
 
-
+// Submete os dados de um evento para a API
 async function submitEvent() {
     const title = document.getElementById("title").value.trim();
     const description = document.getElementById("description").value.trim();
@@ -67,7 +70,6 @@ async function submitEvent() {
         }
 
         const resultText = await response.text();
-        console.info(`Resposta: ${resultText}`);
         showSucessMessage("Evento cadastrado com sucesso!");
 
         // Redirecionamento ou outras ações após o sucesso
@@ -81,6 +83,7 @@ async function submitEvent() {
     }
 }
 
+// Atualiza o contador de caracteres restantes na descrição
 function updateCharacterCount() {
     const textarea = document.getElementById('description');
     const charCounter = document.getElementById('charCounter');

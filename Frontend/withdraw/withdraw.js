@@ -1,3 +1,4 @@
+// Alterna a visibilidade dos campos com base no método de saque selecionado
 function toggleFields() {
     const withdrawMethod = document.getElementById("withdrawMethod").value;
     const pixFields = document.getElementById("pixFields");
@@ -15,6 +16,7 @@ function toggleFields() {
     }
 }
 
+// Exibe uma mensagem de erro
 function showErrorMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -22,6 +24,7 @@ function showErrorMessage(message) {
     mb.style.backgroundColor = "red";
 }
 
+// Exibe uma mensagem de sucesso
 function showSucessMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -29,6 +32,7 @@ function showSucessMessage(message) {
     mb.style.backgroundColor = "green";
 }
 
+// Oculta a mensagem de erro
 function hideErrorMessage() {
     var mb = document.getElementById("messageBox");
     mb.style.display = "none";
@@ -88,7 +92,6 @@ async function performWithdraw() {
         }
 
         const resultText = await response.text();
-        console.info(`Resposta: ${resultText}`);
         showSucessMessage("Saque realizado com sucesso!")
 
         setTimeout(() => {

@@ -19,12 +19,10 @@ function isValidSignUp(completeName, email, password) {
             showErrorMessage("Preencha a senha.");
         }
     }
-    console.info(completeName);
-    console.info(email);
-    console.info(password);
     return valid;
 }
 
+// Exibe uma mensagem de erro
 function showErrorMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -32,6 +30,7 @@ function showErrorMessage(message) {
     mb.style.backgroundColor = "red";
 }
 
+// Exibe uma mensagem de sucesso
 function showSucessMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -39,16 +38,18 @@ function showSucessMessage(message) {
     mb.style.backgroundColor = "green";
 }
 
+// Oculta a mensagem de erro
 function hideErrorMessage() {
     var mb = document.getElementById("messageBox");
     mb.style.display = "none";
 }
 
+// Submete os dados do SignUp para a API
 async function performSignUp() {
     var completeName = document.getElementById("completeName").value;
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
-    var date = document.getElementById("birthdate");
+    var date = document.getElementById("birthdate").value;
 
     if (isValidSignUp(completeName, email, password)) {
         try {
@@ -69,7 +70,6 @@ async function performSignUp() {
             }
 
             const resultText = await response.text(); // Lê a resposta como texto
-            console.info(`Resposta: ${resultText}`); // Aqui você pode obter a resposta do backend
 
             // Exibe a mensagem de sucesso após o cadastro
             showSucessMessage("Cadastro realizado com sucesso!");

@@ -184,6 +184,15 @@ body {
     display: none;
 }
 
+#messageBox2{
+    background-color: darkred;
+    color: white;
+    margin-top: 10px;
+    border-radius: 5px;
+    padding: 5px;
+    display: none;
+}
+
 /* Centralizar o conteúdo dentro do container */
 .header, .filters, .categories {
     width: 100%;

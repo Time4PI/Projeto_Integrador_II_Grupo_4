@@ -1,3 +1,4 @@
+// Exibe uma mensagem de erro
 function showErrorMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -5,6 +6,7 @@ function showErrorMessage(message) {
     mb.style.backgroundColor = "red";
 }
 
+// Exibe uma mensagem de sucesso
 function showSucessMessage(message) {
     var mb = document.getElementById("messageBox");
     document.getElementById("message").innerHTML = message;
@@ -12,11 +14,13 @@ function showSucessMessage(message) {
     mb.style.backgroundColor = "green";
 }
 
+// Oculta a mensagem de erro
 function hideErrorMessage() {
     var mb = document.getElementById("messageBox");
     mb.style.display = "none";
 }
 
+// Valida os dados do depósito
 function isValidDeposit(value, cardNumber, cardName, cvc, expirationDate) {
     var valid = true;
 
@@ -44,6 +48,7 @@ function isValidDeposit(value, cardNumber, cardName, cvc, expirationDate) {
     return valid;
 }
 
+// Realiza o depósito
 async function performDeposit() {
     const token = localStorage.getItem('authToken');
     var value = document.getElementById("value").value;
@@ -53,6 +58,7 @@ async function performDeposit() {
     var expirationDate = document.getElementById("expirationDate").value;
 
     if (isValidDeposit(value, cardNumber, cardName, cvc, expirationDate)) {
+        // Formata a data de expiração para o formato esperado pela API
         if (expirationDate && /^(0[1-9]|1[0-2])\/\d{4}$/.test(expirationDate)) {
             const [month, year] = expirationDate.split('/');
             expirationDate = `${year}-${month}`;
@@ -77,12 +83,11 @@ async function performDeposit() {
             }
 
             const resultText = await response.text();
-            console.info(`Resposta: ${resultText}`);
 
             showSucessMessage("Depósito realizado com sucesso!");
 
             setTimeout(() => {
-                window.location.href = "../home_page/";
+                window.location.href = "../home_page/"; // Redireciona para a página inicial
             }, 2000);
 
         } catch (error) {

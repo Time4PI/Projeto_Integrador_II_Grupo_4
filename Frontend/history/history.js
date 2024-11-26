@@ -1,8 +1,3 @@
-function signOut() {
-    localStorage.removeItem('authToken');
-    location.reload();
-}
-
 document.addEventListener("DOMContentLoaded", function() {
     // Verifica se o token de autenticação está presente no localStorage
     const token = localStorage.getItem('authToken');
@@ -41,9 +36,9 @@ document.addEventListener("DOMContentLoaded", function() {
       if (newEventLink) newEventLink.style.display = 'none';
       if (historyLink) historyLink.style.display = 'none';
   }
-  });
+});
   
-  document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     // Verifica se o token de autenticação existe no localStorage
     const authToken = localStorage.getItem('authToken');
   
@@ -52,12 +47,17 @@ document.addEventListener("DOMContentLoaded", function() {
         loadTransactions()
         loadUserInfo();
     } 
-  });
+});
 
-  async function loadUserInfo() {
+function signOut() {
+    localStorage.removeItem('authToken'); // Remove o token de autenticação do armazenamento local
+    localStorage.removeItem('role');
+    location.reload(); 
+}
+
+async function loadUserInfo() {
     // Obtém o token de autenticação do localStorage
     const token = localStorage.getItem('authToken');
-    console.log(localStorage.getItem('authToken'));
   
     if (!token) {
         console.error('Token de autenticação não encontrado.');
@@ -80,16 +80,16 @@ document.addEventListener("DOMContentLoaded", function() {
   
         // Obtém os dados da resposta e os insere nos elementos HTML
         const data = await response.json();
-        console.log(data);
         document.getElementById("userName").textContent = data.name || "N/A";
         document.getElementById("userEmail").textContent = data.email || "N/A";
         document.getElementById("userBalance").textContent = `R$ ${data.balance.toFixed(2)}` || "N/A";
     } catch (error) {
         console.error("Erro ao carregar informações do usuário:", error);
     }
-  }
+}
 
-  async function loadTransactions() {
+// Carrega as transações
+async function loadTransactions() {
     const userToken = localStorage.getItem('authToken');
   
     try {
@@ -103,7 +103,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!response.ok) throw new Error("Falha ao carregar o histórico!");
   
         const data = await response.json();
-        console.log(data); // Depuração
   
         if (data && data.length > 0) {
             displayTransactions(data); // Exibe as transações
