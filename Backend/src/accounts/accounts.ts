@@ -264,6 +264,7 @@ export namespace AccountsHandler {
                     email: userInfo.EMAIL,
                     balance: userInfo.BALLANCE,
                     role: userInfo.ACCOUNT_ROLE,
+                    id: userInfo.ID,
                 });
             } else {
                 res.status(404).send('Usuário não encontrado');
@@ -273,15 +274,15 @@ export namespace AccountsHandler {
         }
     };
     
-    async function getUserInfo(token: string): Promise<{ COMPLETE_NAME: string; EMAIL: string; BALLANCE: number; ACCOUNT_ROLE: string } | undefined> {
+    async function getUserInfo(token: string): Promise<{ COMPLETE_NAME: string; EMAIL: string; BALLANCE: number; ACCOUNT_ROLE: string; ID: number} | undefined> {
         let connection;
         try {
             connection = await getOracleConnection();
             OracleDB.outFormat = OracleDB.OUT_FORMAT_OBJECT;
     
             // Executa a query para obter o nome, email e saldo do usuário com base no token
-            const result = await connection.execute<{ COMPLETE_NAME: string; EMAIL: string; BALLANCE: number; ACCOUNT_ROLE: string}>(
-                `SELECT A.COMPLETE_NAME, A.EMAIL, W.BALLANCE, A.ACCOUNT_ROLE 
+            const result = await connection.execute<{ COMPLETE_NAME: string; EMAIL: string; BALLANCE: number; ACCOUNT_ROLE: string; ID: number}>(
+                `SELECT A.COMPLETE_NAME, A.EMAIL, W.BALLANCE, A.ACCOUNT_ROLE, A.ID
                  FROM ACCOUNTS A 
                  JOIN WALLET W ON A.ID = W.ACCOUNT_ID 
                  WHERE A.TOKEN = :token`,
@@ -296,6 +297,7 @@ export namespace AccountsHandler {
                     EMAIL: userInfo.EMAIL,
                     BALLANCE: userInfo.BALLANCE,
                     ACCOUNT_ROLE: userInfo.ACCOUNT_ROLE,
+                    ID: userInfo.ID,
                 };
             }
         } catch (error) {

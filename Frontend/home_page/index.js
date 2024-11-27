@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const withdrawLink = document.getElementById('withdraw-link');
     const newEventLink = document.getElementById('newEvent-link');
     const historyLink = document.getElementById('history-link');
+    const myEventsLink = document.getElementById('myEvents-link');
     const sortDateButton = document.getElementById('sort-by-end-date');
     const sortBetButton = document.getElementById('sort-by-bets');
     const searchBar = document.getElementById('searchBar');
@@ -35,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (withdrawLink) withdrawLink.style.display = 'inline-block';
         if (newEventLink) newEventLink.style.display = 'inline-block';
         if (historyLink) historyLink.style.display = 'inline-block';
+        if (myEventsLink) myEventsLink.style.display = 'inline-block';
         if (sortBetButton) sortBetButton.style.display = 'inline-block';
         if (sortDateButton) sortDateButton.style.display = 'inline-block';
         if (fenomenosButton) fenomenosButton.style.display = 'inline-block';
@@ -51,8 +53,9 @@ document.addEventListener("DOMContentLoaded", function() {
             if (withdrawLink) withdrawLink.style.display = 'none';
             if (newEventLink) newEventLink.style.display = 'none';
             if (historyLink) historyLink.style.display = 'none';
-            if(sortBetButton) sortBetButton.style.display = 'none';
-            if(sortDateButton) sortDateButton.style.display = 'none';
+            if (myEventsLink) myEventsLink.style.display = 'none';
+            if (sortBetButton) sortBetButton.style.display = 'none';
+            if (sortDateButton) sortDateButton.style.display = 'none';
             if (fenomenosButton) fenomenosButton.style.display = 'none';
             if (eleicoesButton) eleicoesButton.style.display = 'none';
             if (financeiroButton) financeiroButton.style.display = 'none';
@@ -73,6 +76,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (withdrawLink) withdrawLink.style.display = 'none';
         if (newEventLink) newEventLink.style.display = 'none';
         if (historyLink) historyLink.style.display = 'none';
+        if (myEventsLink) myEventsLink.style.display = 'none';
         if (sortBetButton) sortBetButton.style.display = 'none';
         if (sortDateButton) sortDateButton.style.display = 'none';
         if(searchBar) searchBar.style.display = 'none';
@@ -819,6 +823,7 @@ async function loadUserInfo() {
 function signOut() {
     localStorage.removeItem('authToken'); // Remove o token de autenticação do armazenamento local
     localStorage.removeItem('role');
+    localStorage.removeItem('id');
     localStorage.removeItem('hasReloaded');
     location.reload();
 }
