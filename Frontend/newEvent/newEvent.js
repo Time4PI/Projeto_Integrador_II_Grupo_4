@@ -36,14 +36,7 @@ async function submitEvent() {
         showErrorMessage("Preencha todos os campos.");
         return;
     }
-
-    // Transformação de hora de HH:MM para HH:MM:SS
-    function formatTime(timeStr) {
-        return `${timeStr}:00`;
-    }
-
-    const formattedEndHour = formatTime(endHour);
-
+    
     // Headers a serem enviados
     let headers = {
         'title': title,
@@ -69,7 +62,6 @@ async function submitEvent() {
             throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
         }
 
-        const resultText = await response.text();
         showSucessMessage("Evento cadastrado com sucesso!");
 
         // Redirecionamento ou outras ações após o sucesso

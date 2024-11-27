@@ -359,7 +359,6 @@ export namespace EventsHandler{
               pass: process.env.MAIL_PASSWORD,
               clientId: process.env.OAUTH_CLIENTID,
               clientSecret: process.env.OAUTH_CLIENT_SECRET,
-              accessToken: process.env.OAUTH_ACCESS_TOKEN,
               refreshToken: process.env.OAUTH_REFRESH_TOKEN
             }
           } as any);
@@ -543,7 +542,7 @@ export namespace EventsHandler{
                 res.json(response);
 
             }else {
-                res.statusCode = 404;
+                res.statusCode = 204;
                 res.send("Não existem eventos correspondentes");
             }
 

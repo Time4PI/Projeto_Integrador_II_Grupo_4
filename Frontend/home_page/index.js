@@ -866,8 +866,6 @@ async function performBet() {
                   throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
               }
   
-              const resultText = await response.text(); // Lê a resposta como texto
-  
               // Exibe a mensagem de sucesso após o cadastro
               showSucessMessage("Aposta realizada com sucesso!");
   
