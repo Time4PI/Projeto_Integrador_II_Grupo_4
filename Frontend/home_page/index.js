@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const eleicoesButton = document.getElementById('eleicoes');
     const financeiroButton = document.getElementById('financeiro');
     const esportesButton = document.getElementById('esportes');
+    const outrosButton = document.getElementById('outros');
     const todosButton = document.getElementById('todos');
   
     // Se o token existir, remova ou oculte o botão de login
@@ -39,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (fenomenosButton) fenomenosButton.style.display = 'inline-block';
         if (eleicoesButton) eleicoesButton.style.display = 'inline-block';
         if (financeiroButton) financeiroButton.style.display = 'inline-block';
+        if (outrosButton) outrosButton.style.display = 'inline-block';
         if (esportesButton) esportesButton.style.display = 'inline-block';
         if (todosButton) todosButton.style.display = 'inline-block';
         if(searchBar) searchBar.style.display = 'inline-block';
@@ -54,6 +56,7 @@ document.addEventListener("DOMContentLoaded", function() {
             if (fenomenosButton) fenomenosButton.style.display = 'none';
             if (eleicoesButton) eleicoesButton.style.display = 'none';
             if (financeiroButton) financeiroButton.style.display = 'none';
+            if (outrosButton) outrosButton.style.display = 'none';
             if (esportesButton) esportesButton.style.display = 'none';
             if (todosButton) todosButton.style.display = 'none';
             if(searchBar) searchBar.style.display = 'none';
@@ -77,6 +80,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (fenomenosButton) fenomenosButton.style.display = 'none';
         if (eleicoesButton) eleicoesButton.style.display = 'none';
         if (financeiroButton) financeiroButton.style.display = 'none';
+        if (outrosButton) outrosButton.style.display = 'none';
+        
         if (esportesButton) esportesButton.style.display = 'none';
         if (todosButton) todosButton.style.display = 'none';
     }
@@ -350,6 +355,7 @@ const fenomenosButton = document.getElementById('fenomenos');
 const eleicoesButton = document.getElementById('eleicoes');
 const financeiroButton = document.getElementById('financeiro');
 const esportesButton = document.getElementById('esportes');
+const outrosButton = document.getElementById('outros');
 const todosButton = document.getElementById('todos');
 
 // Mapear os botões para suas categorias
@@ -357,7 +363,8 @@ const buttons = {
     1: fenomenosButton,
     2: eleicoesButton,
     3: financeiroButton,
-    4: esportesButton
+    4: esportesButton,
+    5: outrosButton
 };
 
 // Adicionar o botão "todos" fora do objeto de categorias
@@ -442,7 +449,8 @@ function showAllEvents() {
                 1: "Fenômenos Naturais",
                 2: "Política",
                 3: "Mercado Financeiro",
-                4: "Esportes"
+                4: "Esportes",
+                5: "Outros"
             };
 
             // Preenche o container com o conteúdo do evento
