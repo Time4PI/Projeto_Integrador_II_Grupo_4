@@ -43,8 +43,18 @@ function isValidDeposit(value, cardNumber, cardName, cvc, expirationDate) {
     if (!expirationDate || !/^(0[1-9]|1[0-2])\/\d{4}$/.test(expirationDate)) {
         showErrorMessage("Digite uma data de expiração válida (MM/AAAA).");
         valid = false;
+    } else {
+        const [month, year] = expirationDate.split('/').map(Number);
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // Meses começam de 0
+        const currentYear = currentDate.getFullYear();
+    
+        // Verifica se a data está no passado
+        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+            showErrorMessage("A data de expiração não pode ser no passado.");
+            valid = false;
+        }
     }
-
     return valid;
 }
 

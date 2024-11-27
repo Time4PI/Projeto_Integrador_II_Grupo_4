@@ -11,17 +11,22 @@
 </head>
 <body>
     <!-- Tela de Login -->
-    <div class="container-lg d-flex justify-content-center align-items-center min-vh-100">
+    <div class="login-container">
         <div class="login-box">
             <p class="home-link"><a href="../home_page/"> ↩ Voltar para a página inicial</a></p>
             <h1>Entrar</h1>
             <form>
-                <label for="username">Email</label>
+                <label for="email">Email</label>
                 <input type="email" id="email" name="email" onfocus="hideErrorMessage()">
-
+    
                 <label for="password">Senha</label>
-                <input type="password" id="password" name="password" onfocus="hideErrorMessage()">
-
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" onfocus="hideErrorMessage()">
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-password" onclick="togglePasswordVisibility()">
+                    <label for="show-password">Mostrar senha</label>
+                </div>
                 <button type="button" class="login-button" onclick="performSignIn()">Login</button>
                 <div id="messageBox">
                     <p id="message"></p>
@@ -29,8 +34,7 @@
             </form>
             <p class="signup-link">Não possui uma conta? <a href="../signUp/">Cadastre-se</a></p>
         </div>
-    </div>
-
+    </div>    
 </body>
 </html>
 

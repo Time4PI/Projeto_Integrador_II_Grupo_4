@@ -119,3 +119,23 @@ body {
     padding: 5px;
     display: none;
 }
+
+.checkbox-container {
+    display: flex;
+    gap: 12px; /* Espaço entre o checkbox e o texto */
+    font-size: 14px;
+    color: #444;
+}
+
+.checkbox-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-color: #444;
+}
+
+.checkbox-container label {
+    margin-bottom: 15px;
+    padding: 0; 
+    line-height: 1; 
+}
