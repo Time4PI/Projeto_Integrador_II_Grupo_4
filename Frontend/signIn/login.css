@@ -50,7 +50,8 @@ body {
 }
 
 .login-box input[type="email"],
-.login-box input[type="password"] {
+.login-box input[type="password"], 
+.login-box input[type="text"]{
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
@@ -118,4 +119,22 @@ body {
     display: none;
 }
 
+.checkbox-container {
+    display: flex;
+    gap: 12px; /* Espaço entre o checkbox e o texto */
+    font-size: 14px;
+    color: #444;
+}
 
+.checkbox-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-color: #444;
+}
+
+.checkbox-container label {
+    margin-bottom: 15px;
+    padding: 0; 
+    line-height: 1; 
+}

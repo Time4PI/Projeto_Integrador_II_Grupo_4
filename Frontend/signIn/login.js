@@ -86,7 +86,17 @@ async function performSignIn() {
     }
 }
 
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('password');
+    const showPasswordCheckbox = document.getElementById('show-password');
 
+    // Alterna entre os tipos "password" e "text"
+    if (showPasswordCheckbox.checked) {
+        passwordInput.type = 'text';
+    } else {
+        passwordInput.type = 'password';
+    }
+}
 
 
 

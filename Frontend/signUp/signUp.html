@@ -27,7 +27,10 @@
 
                 <label for="password">Senha</label>
                 <input type="password" id="password" name="password" onfocus="hideErrorMessage()">
-                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-password" onclick="togglePasswordVisibility()">
+                    <label for="show-password">Mostrar senha</label>
+                </div>
                 <button type="button" class="signup-button" onclick="performSignUp()">Criar Conta</button>
                 <div id="messageBox">
                     <p id="message"></p>
