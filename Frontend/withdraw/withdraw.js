@@ -103,6 +103,45 @@ async function performWithdraw() {
     }
 }
 
+
+// Função para calcular e exibir a taxa com base no valor inserido
+function updateMessage() {
+    const value = parseFloat(document.getElementById('value').value);
+    let message = '';
+    let fee = 0;
+
+    if (isNaN(value) || value === '') {
+        document.getElementById('messageTaxa').textContent = ''; 
+        return; // Sai da função, não faz o cálculo
+    }
+    
+    // Verifica as faixas de valor e aplica a taxa
+    if (value <= 100) {
+        fee = value * 0.04;
+    } else if (value <= 1000) {
+        fee = value * 0.03;
+    } else if (value <= 5000) {
+        fee = value * 0.02;
+    } else if (value <= 100000) {
+        fee = value * 0.01;
+    }
+
+    // Se o valor for acima de 100.000, a taxa é 0
+    if (value > 100000) {
+        fee = 0;
+    }
+
+    // Mensagem a ser exibida
+    if (fee > 0) {
+        message = `Você irá receber: R$ ${(value - fee).toFixed(2)} (Taxa de R$ ${fee.toFixed(2)})`;
+    } else {
+        message = `Você irá receber: R$ ${value.toFixed(2)} (Sem taxa)`;
+    }
+
+     // Exibe a mensagem
+    document.getElementById('messageTaxa').textContent = message;
+}
+
 document.getElementById('openModalButton').addEventListener('click', function () {
     const modal = new bootstrap.Modal(document.getElementById('taxaModal'));
     modal.show();
