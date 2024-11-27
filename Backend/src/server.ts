@@ -43,6 +43,9 @@ app.get('/newEvent', (req: Request, res: Response) => {
     res.sendFile(path.resolve(__dirname, "../../frontend/newEvent/newEvent.html"));
 });
 
+app.get('/myEvents', (req: Request, res: Response) => {
+    res.sendFile(path.resolve(__dirname, "../../frontend/myEvents/myEvents.html"));
+});
 
 route.get('/', (req: Request, res: Response) => {
     res.status(403).send('Acesso não permitido para esta rota.');
