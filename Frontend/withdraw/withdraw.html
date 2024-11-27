@@ -21,8 +21,8 @@
             </div>
             <form>
                 <label for="value">Valor</label>
-                <input type="number" id="value" name="value" placeholder="Coloque o valor para sacar" onfocus="hideErrorMessage()" required>
-
+                <input type="number" id="value" name="value" placeholder="Coloque o valor para sacar" onfocus="hideErrorMessage()" oninput="updateMessage()" required>
+                <p id="messageTaxa" class="small text-start" ></p>
                 <label for="withdrawMethod">Método de Saque</label>
                 <select id="withdrawMethod" name="withdrawMethod" onchange="toggleFields()" required>
                     <option value="">Selecione o método</option>
