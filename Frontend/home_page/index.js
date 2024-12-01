@@ -874,7 +874,10 @@ async function performBet() {
               });
   
               if (!response.ok) {
-                  const errorText = await response.text(); // Lê como texto
+                  let errorText = await response.text(); // Lê como texto
+                  if(errorText === 'Saldo insuficiente.'){
+                    errorText += `<br><a style="cursor: pointer;" onclick="window.location.href = '../deposit/deposit.html'">Clique Aqui Para Realizar Depósito</a>`
+                  }
                   showErrorMessage(errorText);
                   throw new Error(`Erro HTTP! Status: ${response.status}, Mensagem: ${errorText}`);
               }

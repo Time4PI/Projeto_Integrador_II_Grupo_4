@@ -119,7 +119,7 @@ let loadedEvents = [];
   
 async function loadEvents() {
     const role = localStorage.getItem('role');
-    let status = 'Pending';
+    let status = 'Any';
     let date = 'Any';
 
     if (role == 'admin'){
@@ -183,12 +183,15 @@ function displayEvents(events) {
             <div class="card-body text-center activity-card card w-100 mb-3">
                 <h3 id="betName${event.EVENT_ID}">${event.TITLE}</h3>
                 <p>${event.DESCRIPTION}</p>
+                <p>Status: ${event.STATUS}</p>
+                <p>Número de Apostas: ${event.TOTAL_BETS}</p>
                 <p>Categoria: ${categoryMap[event.CATEGORY]}</p>
                 <p>Data de Acontecimento do Evento: ${new Date(event.EVENT_DATE).toLocaleDateString()}</p>
                 <p>Data de Início das Apostas: ${new Date(event.START_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 <p>Data de Fim das Apostas: ${new Date(event.END_DATE).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
             </div>
         `;
+                if(event.STATUS === 'Pending' || event.STATUS === 'Approved' && event.TOTAL_BETS === 0){
                     const buttonContainer = document.createElement("div");
                     buttonContainer.classList.add("bet-container", "mt-3");
                     buttonContainer.innerHTML = `
@@ -200,6 +203,7 @@ function displayEvents(events) {
                         </button>
                     `;
                     eventContainer.querySelector('.card-body').appendChild(buttonContainer);
+                }
             // Adiciona o container do evento ao mainContainer
             mainContainer.appendChild(eventContainer);
             }
