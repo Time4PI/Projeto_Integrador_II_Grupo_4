@@ -74,7 +74,7 @@ async function performSignUp() {
 
             // Após um tempo, você pode redirecionar o usuário para a página de login ou outra
             setTimeout(() => {
-                window.location.href = "../signIn/"; // Redireciona para a página de login, por exemplo
+                window.location.href = "../signIn/"; // Redireciona para a página de login
             }, 3000); // Aguarda 3 segundos para mostrar a mensagem de sucesso
 
         } catch (error) {
