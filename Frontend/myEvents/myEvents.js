@@ -153,6 +153,7 @@ function displayEvents(events) {
     const token = localStorage.getItem('authToken');
     const mainContainer = document.getElementById("main-events-container");
 
+    events.reverse(); //deixa o evento mais atual em cima
     // Limpa o container antes de adicionar novos eventos
     mainContainer.innerHTML = "";
     if(token){
