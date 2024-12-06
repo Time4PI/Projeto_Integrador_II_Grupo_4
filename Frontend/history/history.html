@@ -52,7 +52,7 @@
                     <a href="../deposit/" class="nav-link" id="deposit-link">💸 Depositar</a>
                     <a href="../withdraw/" class="nav-link" id="withdraw-link">💵 Sacar</a>
                     <a href="../newEvent/" class="nav-link" id="newEvent-link">+ Novo Evento</a>
-                    <a href="../myEvents/" class="nav-link" id="myEvents-link">⌛ Meus Eventos Pendentes</a>
+                    <a href="../myEvents/" class="nav-link" id="myEvents-link">💼 Meus Eventos</a>
                     <a href="../home_page/" class="nav-link" id="signOut-link" onclick="signOut()">↪️ Sair</a>
                 </nav>
             </div>
@@ -70,32 +70,6 @@
                 <div class="activity-list d-flex flex-column align-items-center">
                     <div class="w-100 mb-3" id="main-events-container">
                         <div class="card-body text-center">Entre para ver o seu Histórico!</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="betModal" class="modal modal-lg" style="display: none;">
-                <div class="modal-content">
-                    <span class="close-button">&times;</span>
-                    <h2>Faça sua aposta!</h2>
-                    <p id="eventName"></p>
-                    
-                    <!-- Botões "Sim" e "Não" para selecionar a aposta -->
-                    <div class="button-container">
-                        <button id="yesButton" class="btn btn-secondary btn-lg py-1 px-5" onfocus="hideErrorMessage()">Sim</button>
-                        <button id="noButton" class="btn btn-secondary btn-lg py-1 px-5" onfocus="hideErrorMessage()">Não</button>
-                    </div>
-                    
-                    <!-- Campo para inserir o valor da aposta -->
-                    <div class="bet-input mt-3">
-                        <label for="betAmount">Digite o valor que deseja apostar:</label>
-                        <input type="number" id="betAmount" name="betAmount" class="form-control custom-input" required min="1" onfocus="hideErrorMessage()" placeholder="Valor da aposta">
-                    </div>
-                    
-                    <!-- Botão para confirmar a aposta -->
-                    <button id="confirmBetButton" class="btn btn-success mt-3" onclick="performBet()">Confirmar Aposta</button>
-                    <div id="messageBox">
-                        <p id="message"></p>
                     </div>
                 </div>
             </div>
