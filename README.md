@@ -94,8 +94,10 @@ O site estará disponível em:
 
 ---
 
-## 🖼️ Demonstrações  
-
+## 🖼️ Demonstrações 
+<p align="center">
+  <img src="./assets/FutureBet.png" width="800px">
+</p>
 
 ---
 
